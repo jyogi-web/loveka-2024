@@ -36,6 +36,7 @@ app.post('/send-message', (req, res) => {
 
 // Webhookエンドポイント
 app.post("/webhook", middleware(config), (req, res) => {
+  // console.log(req)
   Promise
     .all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
@@ -48,6 +49,7 @@ app.post("/webhook", middleware(config), (req, res) => {
 app.listen(port, () => console.log(`Server is running on port ${port}`));
 
 async function handleEvent(event) {
+  console.log(`eventだよ: ${JSON.stringify(event, null, 2)}`);
   if (event.type !== 'message') {
     return Promise.resolve(null);
   }
