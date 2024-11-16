@@ -10,12 +10,6 @@
         "src": "/(.*)",
         "dest": "index.mjs"
       }
-    ],
-    "files": [
-      "views/**/*.ejs",
-      "index.mjs",
-      "package.json",
-      "node_modules/**"
-    ]    
+    ]  
   }
   
