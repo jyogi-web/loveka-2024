@@ -2,12 +2,21 @@ import 'dotenv/config'; // 環境変数を読み込むための設定
 import express from 'express'; // Expressフレームワークをインポート
 import { Client, middleware } from '@line/bot-sdk'; // LINE Messaging API SDKをインポート
 import ejs from 'ejs'; // EJSテンプレートエンジンをインポート
+import path from 'path'; // パス操作用のモジュールをインポート
 
 const app = express(); // Expressアプリケーションを作成
-const port = process.env.port || 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
+const port = 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
 app.set('view engine', 'ejs'); // テンプレートエンジンにEJSを指定
 app.engine('ejs', ejs.__express); // テンプレートエンジンにEJSを指定
 app.set('views', './views'); // テンプレートファイルの場所を指定
+// 静的ファイルの提供
+app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
+
+// エラーハンドリング
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
 
 // LINE Messaging APIの設定
 const config = {
