@@ -3,16 +3,15 @@
     "version": "1.0.0",
     "main": "index.mjs",
     "scripts": {
-      "start": "node index.mjs"
+        "start": "node index.mjs"
     },
     "engines": {
-      "node": "18.x"
+        "node": "18.x"
     },
     "dependencies": {
-      "@line/bot-sdk": "^9.5.0",
-      "dotenv": "^16.4.5",
-      "express": "^4.21.1"
+        "@line/bot-sdk": "^9.5.0",
+        "dotenv": "^16.4.5",
+        "ejs": "^3.1.10",
+        "express": "^4.21.1"
     }
 }
-  
-  

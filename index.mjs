@@ -4,6 +4,7 @@ import { Client, middleware } from '@line/bot-sdk'; // LINE Messaging API SDKを
 
 const app = express(); // Expressアプリケーションを作成
 const port = process.env.port || 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
+app.set('view engine', 'ejs'); // テンプレートエンジンにEJSを指定
 
 // LINE Messaging APIの設定
 const config = {
@@ -17,6 +18,17 @@ const client = new Client(config); // LINE Messaging APIクライアントを作
 app.get("/", (req, res) => {
   res.send("Hello World"); // ルートにアクセスしたときに "Hello World" を返す
 });
+
+//ランキング表示
+app.get("/ranking", (req, res) => {
+  const data = [
+    { rank: 1, name: "山田太郎", score: 100 },
+    { rank: 2, name: "鈴木花子", score: 90 },
+    { rank: 3, name: "佐藤次郎", score: 80 }
+  ];
+  res.render("ranking", { items:data }); // テンプレートにデータを渡してレンダリング
+});
+
 
 // メッセージ送信エンドポイント
 app.post('/send-message', (req, res) => {
