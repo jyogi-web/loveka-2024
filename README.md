@@ -18,4 +18,11 @@ https://zenn.dev/y_2_k/articles/e419bcf729e82d
 
 ## LineAPI関係
 
+LineDevelopConsole
+
+https://developers.line.biz/console/
+
+オフィシャルアカウントマネージャー
+https://manager.line.biz/
+
 今からやるので後で追加
