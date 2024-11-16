@@ -18,7 +18,7 @@ const client = new Client(config); // LINE Messaging APIクライアントを作
 
 // ルートエンドポイント
 app.get("/", (req, res) => {
-  res.send("Hello World"); // ルートにアクセスしたときに "Hello World" を返す
+  res.render("index");
 });
 
 //ランキング表示
