@@ -14,12 +14,12 @@ const config = {
 const client = new Client(config); // LINE Messaging APIクライアントを作成
 
 // ルートエンドポイント
-app.get("/api/", (req, res) => {
+app.get("/", (req, res) => {
   res.send("Hello World"); // ルートにアクセスしたときに "Hello World" を返す
 });
 
 // メッセージ送信エンドポイント
-app.post('/api/send-message', (req, res) => {
+app.post('/send-message', (req, res) => {
   const message = {
     type: 'text',
     text: 'Hello from LINE Messaging API' // 送信するメッセージの内容
@@ -36,7 +36,7 @@ app.post('/api/send-message', (req, res) => {
 });
 
 // Webhookエンドポイント
-app.post("/api/webhook", middleware(config), (req, res) => {
+app.post("/webhook", middleware(config), (req, res) => {
   // 受信したイベントを処理
   Promise
     .all(req.body.events.map(handleEvent)) // 受信したイベントごとに handleEvent 関数を呼び出す
