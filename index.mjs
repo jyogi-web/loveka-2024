@@ -1,10 +1,12 @@
 import 'dotenv/config'; // 環境変数を読み込むための設定
 import express from 'express'; // Expressフレームワークをインポート
 import { Client, middleware } from '@line/bot-sdk'; // LINE Messaging API SDKをインポート
+import ejs from 'ejs'; // EJSテンプレートエンジンをインポート
 
 const app = express(); // Expressアプリケーションを作成
 const port = process.env.port || 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
 app.set('view engine', 'ejs'); // テンプレートエンジンにEJSを指定
+app.set('views', './views'); // テンプレートファイルの場所を指定
 
 // LINE Messaging APIの設定
 const config = {
