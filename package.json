@@ -1,9 +1,9 @@
 {
     "name": "loveka-deploy",
     "version": "1.0.0",
-    "main": "app.mjs",
+    "main": "index.mjs",
     "scripts": {
-      "start": "node app.mjs"
+      "start": "node index.mjs"
     },
     "engines": {
       "node": "16.x"

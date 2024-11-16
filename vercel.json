@@ -1,9 +1,11 @@
 {
     "builds": [
-      { "src": "app.mjs", "use": "@vercel/node" }
+      { "src": "frontend/**", "use": "@vercel/next" },
+      { "src": "backend/**", "use": "@vercel/node" }
     ],
     "routes": [
-      { "src": "/(.*)", "dest": "app.mjs" }
+      { "src": "/api/(.*)", "dest": "backend/$1" },
+      { "src": "/(.*)", "dest": "frontend/$1" }
     ]
   }
   
