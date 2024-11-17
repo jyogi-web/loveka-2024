@@ -34,6 +34,7 @@ app.use((err, req, res, next) => {
 const db = admin.firestore();
 const docRef = db.collection('users').doc('alovelace');
 
+const quiz = db.collection('quiz'); // Firestoreのクイズコレクションを取得
 
 // LINE Messaging APIの設定
 const config = {
@@ -91,19 +92,59 @@ app.post("/webhook", middleware(config), (req, res) => {
 // サーバーを起動
 app.listen(port, () => console.log(`Server is running on port ${port}`)); // サーバー起動時にポート番号を出力
 
+
+// クイズ関係の変数定義
+let quizQuestion ="";
+let quizAnswer ="";
+let randomIndex = 0;
+
 // イベントを処理する関数
 async function handleEvent(event) {
   console.log(`eventだよ: ${JSON.stringify(event, null, 2)}`); // 受信したイベントをログに出力
+  console.log(`event.message.text: ${event.message.text}`); // 受信したメッセージをログに出力
   if (event.type !== 'message') {
     return Promise.resolve(null); // メッセージイベント以外は無視
   }
 
   // Firestoreにデータを保存(テスト)
-  const setAda = docRef.set({
-    first: 'Ada',
-    last: 'Lovelace',
-    born: 1815,
-  });
+  // const setAda = docRef.set({
+  //   first: 'Ada',
+  //   last: 'Lovelace',
+  //   born: 1815,
+  // });
+
+  // Firestoreからクイズを取得
+  const quizData = await quiz.get();
+  const quizDataArray = quizData.docs.map(doc => doc.data());
+  console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
+  
+  // クイズ問題を送信
+  if (event.message.text === 'クイズ教えて') {
+    // ランダムにクイズを選択
+    quizQuestion = quizDataArray[randomIndex].question;
+    quizAnswer = quizDataArray[randomIndex].answer;
+    randomIndex = Math.floor(Math.random() * quizDataArray.length);
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: quizQuestion // クイズ問題を送信
+    });
+  }
+
+  // Answerと一致する場合
+  if(event.message.text === quizAnswer) {
+    return client.replyMessage(event.replyToken, [{
+      type: 'text',
+      text: '正解です！'
+    }, {
+      type: 'text',
+      text: 'ランキングページへのリンクです'
+    }]);
+  }else if(event.message.text !== quizAnswer) {
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '不正解です！'
+    });
+  }
 
   if (event.message.type === 'text') {
     return client.replyMessage(event.replyToken, {
