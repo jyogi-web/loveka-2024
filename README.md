@@ -30,4 +30,8 @@ Firebase
 
 https://console.firebase.google.com/u/0/?hl=ja
 
+vercel
+
+https://vercel.com/kou050223s-projects/loveka-deploy
+
 今からやるので後で追加
