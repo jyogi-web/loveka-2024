@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ランキング</title>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+    <header>
+        <h1>ランキングページ</h1>
+    </header>
+    <main>
+        <section>
+            <h2>トップランキング</h2>
+            <ul>
+                <% items.forEach(item => { %>
+                    <li>
+                        <span class="rank"><%= item.rank %></span>
+                        <span class="name"><%= item.name %></span>
+                        <span class="score"><%= item.score %></span>
+                    </li>
+                <% }); %>
+            </ul>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 ランキングサイト</p>
+    </footer>
+</body>
+</html>

@@ -1,10 +1,19 @@
 {
-  "dependencies": {
-    "@line/bot-sdk": "^9.5.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1"
-  },
-  "scripts": {
-    "start": "node app.mjs"
-  }
+    "name": "loveka-deploy",
+    "version": "1.0.0",
+    "main": "index.mjs",
+    "scripts": {
+        "start": "node index.mjs"
+    },
+    "engines": {
+        "node": "18.x"
+    },
+    "dependencies": {
+        "@line/bot-sdk": "^9.5.0",
+        "dotenv": "^16.4.5",
+        "ejs": "^3.1.10",
+        "express": "^4.21.1",
+        "path": "^0.12.7",
+        "require": "^2.4.20"
+    }
 }
