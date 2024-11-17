@@ -43,21 +43,21 @@ app.get("/ranking", (req, res) => {
 
 
 // メッセージ送信エンドポイント
-app.post('/send-message', (req, res) => {
-  const message = {
-    type: 'text',
-    text: 'Hello from LINE Messaging API' // 送信するメッセージの内容
-  };
+// app.post('/send-message', (req, res) => {
+//   const message = {
+//     type: 'text',
+//     text: 'Hello from LINE Messaging API' // 送信するメッセージの内容
+//   };
 
-  client.pushMessage('U4cb7355db135ea19f7d2101a5315bfab', message) // 指定したユーザーIDにメッセージを送信
-    .then(() => {
-      res.status(200).send('Message sent'); // メッセージ送信成功時のレスポンス
-    })
-    .catch((err) => {
-      console.error(err); // エラー発生時にエラーログを出力
-      res.status(500).send('Failed to send message'); // メッセージ送信失敗時のレスポンス
-    });
-});
+//   client.pushMessage('U4cb7355db135ea19f7d2101a5315bfab', message) // 指定したユーザーIDにメッセージを送信
+//     .then(() => {
+//       res.status(200).send('Message sent'); // メッセージ送信成功時のレスポンス
+//     })
+//     .catch((err) => {
+//       console.error(err); // エラー発生時にエラーログを出力
+//       res.status(500).send('Failed to send message'); // メッセージ送信失敗時のレスポンス
+//     });
+// });
 
 // Webhookエンドポイント
 app.post("/webhook", middleware(config), (req, res) => {
