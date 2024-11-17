@@ -4,6 +4,17 @@ import { Client, middleware } from '@line/bot-sdk'; // LINE Messaging API SDKを
 import ejs from 'ejs'; // EJSテンプレートエンジンをインポート
 import path from 'path'; // パス操作用のモジュールをインポート
 
+// Firebase Admin SDKを初期化s
+import admin from 'firebase-admin';
+import functions from 'firebase-functions';
+// 環境変数からサービスアカウントキーを取得
+const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+
+// Firebase Admin SDKを初期化
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 const app = express(); // Expressアプリケーションを作成
 const port = 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
 app.set('view engine', 'ejs'); // テンプレートエンジンにEJSを指定
@@ -17,6 +28,12 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
+
+// admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+
+const db = admin.firestore();
+const docRef = db.collection('users').doc('alovelace');
+
 
 // LINE Messaging APIの設定
 const config = {
@@ -80,6 +97,13 @@ async function handleEvent(event) {
   if (event.type !== 'message') {
     return Promise.resolve(null); // メッセージイベント以外は無視
   }
+
+  // Firestoreにデータを保存(テスト)
+  const setAda = docRef.set({
+    first: 'Ada',
+    last: 'Lovelace',
+    born: 1815,
+  });
 
   if (event.message.type === 'text') {
     return client.replyMessage(event.replyToken, {
