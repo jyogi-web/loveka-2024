@@ -4,6 +4,17 @@ import { Client, middleware } from '@line/bot-sdk'; // LINE Messaging API SDKを
 import ejs from 'ejs'; // EJSテンプレートエンジンをインポート
 import path from 'path'; // パス操作用のモジュールをインポート
 
+// Firebase Admin SDKを初期化s
+import admin from 'firebase-admin';
+import functions from 'firebase-functions';
+// 環境変数からサービスアカウントキーを取得
+const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+
+// Firebase Admin SDKを初期化
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 const app = express(); // Expressアプリケーションを作成
 const port = 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
 app.set('view engine', 'ejs'); // テンプレートエンジンにEJSを指定
@@ -18,6 +29,13 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
+// admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+
+const db = admin.firestore();
+const docRef = db.collection('users').doc('alovelace');
+
+const quiz = db.collection('quiz'); // Firestoreのクイズコレクションを取得
+
 // LINE Messaging APIの設定
 const config = {
   channelSecret: process.env.ChannelSecret, // 環境変数からチャネルシークレットを取得
@@ -28,7 +46,8 @@ const client = new Client(config); // LINE Messaging APIクライアントを作
 
 // ルートエンドポイント
 app.get("/", (req, res) => {
-  res.render("index");
+  res.send("HelloWorld");
+  // res.render("index"); // テンプレートをレンダリング
 });
 
 //ランキング表示
@@ -43,21 +62,21 @@ app.get("/ranking", (req, res) => {
 
 
 // メッセージ送信エンドポイント
-app.post('/send-message', (req, res) => {
-  const message = {
-    type: 'text',
-    text: 'Hello from LINE Messaging API' // 送信するメッセージの内容
-  };
+// app.post('/send-message', (req, res) => {
+//   const message = {
+//     type: 'text',
+//     text: 'Hello from LINE Messaging API' // 送信するメッセージの内容
+//   };
 
-  client.pushMessage('U4cb7355db135ea19f7d2101a5315bfab', message) // 指定したユーザーIDにメッセージを送信
-    .then(() => {
-      res.status(200).send('Message sent'); // メッセージ送信成功時のレスポンス
-    })
-    .catch((err) => {
-      console.error(err); // エラー発生時にエラーログを出力
-      res.status(500).send('Failed to send message'); // メッセージ送信失敗時のレスポンス
-    });
-});
+//   client.pushMessage('U4cb7355db135ea19f7d2101a5315bfab', message) // 指定したユーザーIDにメッセージを送信
+//     .then(() => {
+//       res.status(200).send('Message sent'); // メッセージ送信成功時のレスポンス
+//     })
+//     .catch((err) => {
+//       console.error(err); // エラー発生時にエラーログを出力
+//       res.status(500).send('Failed to send message'); // メッセージ送信失敗時のレスポンス
+//     });
+// });
 
 // Webhookエンドポイント
 app.post("/webhook", middleware(config), (req, res) => {
@@ -74,11 +93,58 @@ app.post("/webhook", middleware(config), (req, res) => {
 // サーバーを起動
 app.listen(port, () => console.log(`Server is running on port ${port}`)); // サーバー起動時にポート番号を出力
 
+
+// クイズ関係の変数定義
+let quizQuestion ="";
+let quizAnswer ="";
+let randomIndex = 0;
+
 // イベントを処理する関数
 async function handleEvent(event) {
   console.log(`eventだよ: ${JSON.stringify(event, null, 2)}`); // 受信したイベントをログに出力
+  console.log(`event.message.text: ${event.message.text}`); // 受信したメッセージをログに出力
   if (event.type !== 'message') {
     return Promise.resolve(null); // メッセージイベント以外は無視
+  }
+
+  // Firestoreにデータを保存(テスト)
+  // const setAda = docRef.set({
+  //   first: 'Ada',
+  //   last: 'Lovelace',
+  //   born: 1815,
+  // });
+
+  // Firestoreからクイズを取得
+  const quizData = await quiz.get();
+  const quizDataArray = quizData.docs.map(doc => doc.data());
+  console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
+  
+  // クイズ問題を送信
+  if (event.message.text === 'クイズ教えて') {
+    // ランダムにクイズを選択
+    quizQuestion = quizDataArray[randomIndex].question;
+    quizAnswer = quizDataArray[randomIndex].answer;
+    randomIndex = Math.floor(Math.random() * quizDataArray.length);
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: quizQuestion // クイズ問題を送信
+    });
+  }
+
+  // Answerと一致する場合
+  if(event.message.text === quizAnswer) {
+    return client.replyMessage(event.replyToken, [{
+      type: 'text',
+      text: '正解です！'
+    }, {
+      type: 'text',
+      text: 'ランキングページへのリンクです'
+    }]);
+  }else if(event.message.text !== quizAnswer) {
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '不正解です！'
+    });
   }
 
   if (event.message.type === 'text') {
