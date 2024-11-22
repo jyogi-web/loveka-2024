@@ -106,31 +106,92 @@ async function handleEvent(event) {
     return Promise.resolve(null); // メッセージイベント以外は無視
   }
 
-  // Firestoreにデータを保存(テスト)
-  // const setAda = docRef.set({
-  //   first: 'Ada',
-  //   last: 'Lovelace',
-  //   born: 1815,
-  // });
+  //クイズデータを登録
+  if (event.message.text === 'クイズ作成') {
+    // 
+  }
+  // 送られてきたデータの形式が正しいかチェック 
+  if(false){
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: 'クイズデータの書き方が違います'
+    });
+    }
+    
 
   // Firestoreからクイズを取得
   const quizData = await quiz.get();
   const quizDataArray = quizData.docs.map(doc => doc.data());
   console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
   
-  // クイズ問題を送信
-  if (event.message.text === 'クイズ教えて') {
-    // ランダムにクイズを選択
-    quizQuestion = quizDataArray[randomIndex].question;
-    quizAnswer = quizDataArray[randomIndex].answer;
-    randomIndex = Math.floor(Math.random() * quizDataArray.length);
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: quizQuestion // クイズ問題を送信
-    });
+  // クイズ関係処理まとめ
+  switch (event.message.text) {
+    case 'クイズ一覧':
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'クイズ一覧です：' + quizDataArray.map(quiz => quiz.question).join('\n\n')
+      });
+    case 'クイズ作成':
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇'
+      });
+    case 'クイズ教えて':
+      // ランダムにクイズを選択
+      quizQuestion = quizDataArray[randomIndex].question;
+      quizAnswer = quizDataArray[randomIndex].answer;
+      randomIndex = Math.floor(Math.random() * quizDataArray.length);
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: quizQuestion // クイズ問題を送信
+      });
+    default:
+      break;
   }
 
-  // Answerと一致する場合
+  // クイズ作成
+  if (event.message.text.startsWith('問題：')) {
+    // メッセージから問題文と答えを抽出
+    const messageParts = event.message.text.split('\n');
+    const questionPart = messageParts.find(part => part.startsWith('問題：'));
+    const answerPart = messageParts.find(part => part.startsWith('答え：'));
+  
+    if (!questionPart || !answerPart) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇'
+      });
+    }
+  
+    // 問題文と答えを取得
+    const question = questionPart.slice(3).trim();
+    const answer = answerPart.slice(3).trim();
+  
+    if (!question || !answer) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '問題文または答えが空欄です。'
+      });
+    }
+  
+    // Firestoreに登録
+    try {
+      await quiz.add({ question, answer });
+  
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」`
+      });
+    } catch (error) {
+      console.error('Firestore登録エラー:', error);
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'クイズの登録中にエラーが発生しました。もう一度お試しください。'
+      });
+    }
+  }
+
+  // Answerの判定
   if(event.message.text === quizAnswer) {
     return client.replyMessage(event.replyToken, [{
       type: 'text',
@@ -146,23 +207,24 @@ async function handleEvent(event) {
     });
   }
 
-  if (event.message.type === 'text') {
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: event.message.text // テキストメッセージに対して同じテキストで返信
-    });
-  } else if (event.message.type === 'sticker') {
-    return client.replyMessage(event.replyToken, {
-      type: 'sticker',
-      packageId: event.message.packageId,
-      stickerId: event.message.stickerId // スタンプメッセージに対して同じスタンプで返信
-    });
-  } else if (event.message.type === 'image') {
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
-    });
+  switch (event.message.type) {
+    case 'text':
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: event.message.text // テキストメッセージに対して同じテキストで返信
+      });
+    case 'sticker':
+      return client.replyMessage(event.replyToken, {
+            type: 'sticker',
+            packageId: event.message.packageId,
+            stickerId: event.message.stickerId // スタンプメッセージに対して同じスタンプで返信
+          });
+    case 'image':
+      return client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
+          });
+    default:
+      return Promise.resolve(null); // その他のメッセージタイプは無視
   }
-
-  return Promise.resolve(null); // その他のメッセージタイプは無視
 }
