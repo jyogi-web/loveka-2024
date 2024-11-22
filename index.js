@@ -17,9 +17,9 @@ admin.initializeApp({
 
 const app = express(); // Expressアプリケーションを作成
 const port = 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
+app.set('views', path.join(__dirname,'views')); // テンプレートファイルの場所を指定
+app.engine('ejs', ejs.__express);
 app.set('view engine', 'ejs'); // テンプレートエンジンにEJSを指定
-app.engine('ejs', ejs.__express); // テンプレートエンジンにEJSを指定
-app.set('views', './views'); // テンプレートファイルの場所を指定
 // 静的ファイルの提供
 app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
 
