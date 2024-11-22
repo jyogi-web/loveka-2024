@@ -125,9 +125,9 @@ async function handleEvent(event) {
       });
     case 'クイズ教えて':
       // ランダムにクイズを選択
+      randomIndex = Math.floor(Math.random() * quizDataArray.length);
       quizQuestion = quizDataArray[randomIndex].question;
       quizAnswer = quizDataArray[randomIndex].answer;
-      randomIndex = Math.floor(Math.random() * quizDataArray.length);
       return client.replyMessage(event.replyToken, {
         type: 'text',
         text: quizQuestion // クイズ問題を送信
