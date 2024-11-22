@@ -106,19 +106,6 @@ async function handleEvent(event) {
     return Promise.resolve(null); // メッセージイベント以外は無視
   }
 
-  //クイズデータを登録
-  if (event.message.text === 'クイズ作成') {
-    // 
-  }
-  // 送られてきたデータの形式が正しいかチェック 
-  if(false){
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: 'クイズデータの書き方が違います'
-    });
-    }
-    
-
   // Firestoreからクイズを取得
   const quizData = await quiz.get();
   const quizDataArray = quizData.docs.map(doc => doc.data());
