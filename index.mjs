@@ -35,6 +35,7 @@ const db = admin.firestore();
 const docRef = db.collection('users').doc('alovelace');
 
 const quiz = db.collection('quiz'); // Firestoreのクイズコレクションを取得
+const imagetest = db.collection('imagetest'); // Firestoreの画像テストコレクションを取得
 
 // LINE Messaging APIの設定
 const config = {
@@ -195,7 +196,7 @@ async function handleEvent(event) {
   }
 
   // Answerの判定
-  if(event.message.text === quizAnswer) {
+  if(event.message.type === 'text' && event.message.text === quizAnswer) {
     return client.replyMessage(event.replyToken, [{
       type: 'text',
       text: '正解です！'
@@ -203,7 +204,7 @@ async function handleEvent(event) {
       type: 'text',
       text: 'ランキングページへのリンクです'
     }]);
-  }else if(event.message.text !== quizAnswer) {
+  }else if(event.message.type === 'text' && event.message.text !== quizAnswer) {
     return client.replyMessage(event.replyToken, {
       type: 'text',
       text: '不正解です！'
@@ -223,6 +224,22 @@ async function handleEvent(event) {
             stickerId: event.message.stickerId // スタンプメッセージに対して同じスタンプで返信
           });
     case 'image':
+      // 画像データを取得
+      console.log('画像データを取得します');
+      const stream = await client.getMessageContent(event.message.id);
+      let data = [];
+      stream.on('data', (chunk) => {
+        data.push(chunk);
+      });
+      stream.on('end', () => {
+        const buffer = Buffer.concat(data);
+        // ここで画像データを処理する（例：ファイルに保存する、クラウドストレージにアップロードするなど）
+        console.log(`画像データ: ${buffer}`);
+        imagetest.add({
+          buffer: buffer
+        });  
+        console.log('画像データを取得しました');
+      });
       return client.replyMessage(event.replyToken, {
             type: 'text',
             text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
