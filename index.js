@@ -89,7 +89,7 @@ app.post('/webhook', middleware(config), (req, res) => {
 });
 
 // 定期実行用のエンドポイント
-app.get('api/cron', async (req, res) => {
+app.get('/api/cron', async (req, res) => {
   res.status(200).json({ message: 'Cron job executed successfully' });
 });
 
