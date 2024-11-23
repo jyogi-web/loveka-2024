@@ -145,8 +145,8 @@ async function handleEvent(event) {
       });
       case '音声再生':
   const audioname = ['porigon.wav', 'mikaruge.mp3', 'gaburiasu.mp3', 'aruseusu.mp3'];
-  const randomIndex = Math.floor(Math.random() * audioname.length);
-  const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname[randomIndex];
+  const randomsound = Math.floor(Math.random() * audioname.length);
+  const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname[randomsound];
   
   return client.replyMessage(event.replyToken, [
     {
