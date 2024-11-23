@@ -19,7 +19,7 @@ const app = express();
 const port = 3000;
 app.set('view engine', 'ejs');
 app.engine('ejs', ejs.__express);
-app.set('views', './views');
+app.set('views', path.join(__dirname,'views'));
 app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
 
 // エラーハンドリング
@@ -86,6 +86,11 @@ app.post('/webhook', middleware(config), (req, res) => {
       console.error(err);
       res.status(500).end();
     });
+});
+
+// 定期実行用のエンドポイント
+app.get('api/cron', async (req, res) => {
+  res.status(200).json({ message: 'Cron job executed successfully' });
 });
 
 // サーバーを起動
