@@ -18,7 +18,7 @@
           },
           "action":{
               "type":"message",
-              "text":"あそびかたを教えて"
+              "text":"あそびかた"
           }
         },
         {
@@ -42,7 +42,7 @@
           },
           "action":{
               "type":"message",
-              "text":"問題を作りたい"
+              "text":"クイズ作成"
           }
         },
         {
@@ -54,7 +54,7 @@
           },
           "action":{
               "type":"message",
-              "text":"ランキングページ"
+              "text":"ランキング"
           }
         }
      
