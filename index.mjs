@@ -223,27 +223,72 @@ async function handleEvent(event) {
             packageId: event.message.packageId,
             stickerId: event.message.stickerId // スタンプメッセージに対して同じスタンプで返信
           });
-    case 'image':
-      // 画像データを取得
-      console.log('画像データを取得します');
-      const stream = await client.getMessageContent(event.message.id);
-      let data = [];
-      stream.on('data', (chunk) => {
-        data.push(chunk);
-      });
-      stream.on('end', () => {
-        const buffer = Buffer.concat(data);
-        // ここで画像データを処理する（例：ファイルに保存する、クラウドストレージにアップロードするなど）
-        console.log(`画像データ: ${buffer}`);
-        imagetest.add({
-          buffer: buffer
-        });  
-        console.log('画像データを取得しました');
-      });
-      return client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
-          });
+          case 'image':
+            // 画像データを取得
+            console.log(`replayToken: ${event.replyToken}`);
+            console.log('画像データを取得します');
+            const stream = await client.getMessageContent(event.message.id);
+            let data = [];
+            stream.on('data', (chunk) => {
+              data.push(chunk);
+            });
+            
+            stream.on('end', async () => {
+              const buffer = Buffer.concat(data); // 受け取った画像データをバッファとしてまとめる
+              // ここで画像データを処理する（例：ファイルに保存する、クラウドストレージにアップロードするなど）
+              console.log(`画像データ: ${buffer}`);
+              imagetest.add({
+                buffer: buffer.toString('base64')
+              });
+              console.log('画像データをFirestoreに保存しました');
+
+              // Firestoreから保存済み画像を取得
+              const snapshot = await imagetest.get();
+              if (snapshot.empty) {
+                console.log('Firestoreに保存された画像がありません。');
+                return client.replyMessage(event.replyToken, {
+                  type: 'text',
+                  text: '比較対象の画像がありません。'
+                });
+              }
+          
+              let isMatch = false;
+              snapshot.forEach((doc) => {
+                const storedBufferData = doc.data().buffer; // Firestoreから取得した画像データ
+                if (!storedBufferData) {
+                  console.log('Firestoreに保存された画像データがありません。');
+                  return;
+                }
+          
+                const storedBuffer = Buffer.from(storedBufferData, 'base64'); // Firestoreに保存された画像をBuffer形式に変換
+          
+                // バイト列を比較
+                if (Buffer.compare(buffer, storedBuffer) === 0) {
+                  isMatch = true;
+                }
+              });
+          
+              // 比較結果をLINEユーザーに通知
+              if (isMatch) {
+                await client.replyMessage(event.replyToken, {
+                  type: 'text',
+                  text: '画像が一致しました！'
+                });
+              } else {
+                await client.replyMessage(event.replyToken, {
+                  type: 'text',
+                  text: '画像が一致しませんでした。'
+                });
+              }
+              
+              console.log('画像データを取得しました');
+            });
+          
+            // return client.replyMessage(event.replyToken, {
+            //   type: 'text',
+            //   text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
+            // });
+          
     default:
       return Promise.resolve(null); // その他のメッセージタイプは無視
   }
