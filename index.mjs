@@ -48,7 +48,7 @@ app.get("/", (req, res) => {
 
 // Firestoreからランキングデータを取得する関数
 async function getRankingData() {
-  const snapshot = await collectionRef.orderBy('timestamp', 'desc').get();
+  const snapshot = await collectionRef.orderBy('timestamp', 'asc').get();
   const rankingData = [];
   snapshot.forEach(doc => {
     const data = doc.data();
@@ -56,7 +56,8 @@ async function getRankingData() {
       id: doc.id, // ドキュメントIDを含める
       message: data.message, // タイトルフィールドを含める
       timestamp: data.timestamp, // タイムスタンプフィールドを含める
-      name: data.userName //  ユーザーの名前を含める
+      name: data.userName, //  ユーザーの名前を含める
+      userid: data.userId
     });
   });
   return rankingData;
@@ -108,17 +109,6 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  // Firestoreにデータを保存
-  const profile = await client.getProfile(event.source.userId);
-  const userName = profile.displayName;
-  const timestamp = new Date().toISOString();
-  const messageText = event.message.text || ''; // undefined のチェックを追加
-  await collectionRef.add({
-    userId: event.source.userId,
-    userName: userName,
-    message: messageText, // 修正
-    timestamp: timestamp
-  });
   const quizData = await quiz.get();
   const quizDataArray = quizData.docs.map(doc => doc.data());
   // console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
@@ -240,15 +230,35 @@ app.get('/responses/:userId', async (req, res) => {
 });
 
   // Answerの判定
-  if(event.message.type === 'text' && event.message.text === quizAnswer) {
-    return client.replyMessage(event.replyToken, [{
-      type: 'text',
-      text: '正解です！'
-    }, {
-      type: 'text',
-      text: 'ランキングページへのリンクです'
-    }]);
-  }else if(event.message.type === 'text' && event.message.text !== quizAnswer) {
+  if (event.message.type === 'text' && event.message.text === quizAnswer) {
+    const RankingData = await getRankingData();
+    console.log("確認",RankingData);
+    let answered = false;
+    RankingData.forEach((ranking)=> {
+      if (ranking.userid === event.source.userId) {
+        answered = true;
+        
+      }
+      console.log('集会終了',event.source.userId);
+      console.log('回答済み',ranking.id);
+    });
+    
+    if (answered) {
+      return client.replyMessage(event.replyToken, [{
+        type: 'text',
+        text: '回答済みです！'
+      }]);
+    } else {
+      await Firestore_save(event);
+      return client.replyMessage(event.replyToken, [{
+        type: 'text',
+        text: '正解です！'
+      }, {
+        type: 'text',
+        text: 'ランキングページへのリンクです'
+      }]);
+    }
+  } else if (event.message.type === 'text' && event.message.text !== quizAnswer) {
     return client.replyMessage(event.replyToken, {
       type: 'text',
       text: '不正解です！'
@@ -372,4 +382,18 @@ function compareImages(image1, image2, width, height, channels) {
   }
 
   return diff;
+}
+// Firestoreにデータを保存
+async function Firestore_save(event)
+{
+  const profile = await client.getProfile(event.source.userId);
+  const userName = profile.displayName;
+  const timestamp = new Date().toISOString();
+  const messageText = event.message.text || ''; // undefined のチェックを追加
+  await collectionRef.add({
+    userId: event.source.userId,
+    userName: userName,
+    message: messageText, // 修正
+    timestamp: timestamp
+  });
 }
