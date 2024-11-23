@@ -107,10 +107,11 @@ async function handleEvent(event) {
   const profile = await client.getProfile(event.source.userId);
   const userName = profile.displayName;
   const timestamp = new Date().toISOString();
+  const messageText = event.message.text || ''; // undefined のチェックを追加
   await collectionRef.add({
     userId: event.source.userId,
     userName: userName,
-    message: event.message.text,
+    message: messageText, // 修正
     timestamp: timestamp
   });
   const quizData = await quiz.get();
