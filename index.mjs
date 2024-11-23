@@ -137,7 +137,7 @@ async function handleEvent(event) {
   }
 
   // クイズ作成(要改善~Flexとかで値だけ入力できるようにする~)
-  if (event.message.text.startsWith('問題：')) {
+  if (event.message.type === 'text' && event.message.text.startsWith('問題：')) {
     // メッセージから問題文と答えを抽出
     const messageParts = event.message.text.split('\n');
     const questionPart = messageParts.find(part => part.startsWith('問題：'));
