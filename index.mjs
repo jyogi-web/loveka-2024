@@ -6,7 +6,8 @@ import path from 'path';
 import admin from 'firebase-admin';
 import functions from 'firebase-functions';
 import sharp from 'sharp';// 画像処理用のモジュールをインポート
-
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 // 環境変数からサービスアカウントキーを取得
 const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
@@ -14,13 +15,15 @@ const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const app = express();
 const port = 3000;
 app.set('view engine', 'ejs');
 app.engine('ejs', ejs.__express);
 app.set('views', './views');
 app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
+app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
 
 // エラーハンドリング
 app.use((err, req, res, next) => {
@@ -140,8 +143,24 @@ async function handleEvent(event) {
         type: 'text',
         text: '画像を送信してください'
       });
+      case '音声再生':
+  const audioname = ['porigon.wav', 'mikaruge.mp3', 'gaburiasu.mp3', 'aruseusu.mp3'];
+  const randomIndex = Math.floor(Math.random() * audioname.length);
+  const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname[randomIndex];
+  
+  return client.replyMessage(event.replyToken, [
+    {
+      type: 'audio',
+      originalContentUrl: pestionaudio, // 変数を直接渡す
+      duration: 3000 // 音声の長さ（ミリ秒）
+    },
+    {
+      type: 'text',
+      text: 'なんのポケモンか当ててね☆'
+    }
+  ]);
     default:
-      break;
+    break;
   }
 
   // クイズ作成(要改善~Flexとかで値だけ入力できるようにする~)
