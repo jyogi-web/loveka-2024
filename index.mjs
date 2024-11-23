@@ -8,6 +8,7 @@ import functions from 'firebase-functions';
 import sharp from 'sharp';// 画像処理用のモジュールをインポート
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+
 // 環境変数からサービスアカウントキーを取得
 const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
@@ -15,13 +16,15 @@ const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
 const app = express();
 const port = 3000;
 app.set('view engine', 'ejs');
 app.engine('ejs', ejs.__express);
-app.set('views', './views');
+app.set('views', path.join(__dirname,'views'));
 app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
 app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
 
@@ -92,6 +95,13 @@ app.post('/webhook', middleware(config), (req, res) => {
     });
 });
 
+// 定期実行用のエンドポイント
+app.get('api/cron', async (req, res) => {
+  // 問題文を現在時間に近い順で取得（過ぎたものは除く）
+  const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).get();
+  res.status(200).json({ message: `Cron job executed successfully${nextQuizData}` });
+});
+
 // サーバーを起動
 app.listen(port, () => console.log(`Server is running on port ${port}`));
 
@@ -99,6 +109,7 @@ app.listen(port, () => console.log(`Server is running on port ${port}`));
 // クイズ関係の変数定義
 let quizQuestion ="";
 let quizAnswer ="";
+let quizDate ="";
 let randomIndex = 0;
 
 // 画像関係の変数定義
@@ -118,6 +129,11 @@ async function handleEvent(event) {
   
   // クイズ関係処理まとめ
   switch (event.message.text) {
+    case 'コマンド':
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'コマンド一覧です\nクイズ一覧\nクイズ作成\nクイズ教えて\n画像設定\n開催コンテスト'
+      });
     case 'クイズ一覧':
       return client.replyMessage(event.replyToken, {
         type: 'text',
@@ -143,23 +159,42 @@ async function handleEvent(event) {
         type: 'text',
         text: '画像を送信してください'
       });
-      case '音声再生':
-  const audioname = ['porigon.wav', 'mikaruge.mp3', 'gaburiasu.mp3', 'aruseusu.mp3'];
-  const randomsound = Math.floor(Math.random() * audioname.length);
-  const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname[randomsound];
-  
-  return client.replyMessage(event.replyToken, [
-    {
-      type: 'audio',
-      originalContentUrl: pestionaudio, // 変数を直接渡す
-      duration: 3000 // 音声の長さ（ミリ秒）
-    },
-    {
-      type: 'text',
-      text: 'なんのポケモンか当ててね☆'
+    case '音声再生':
+      const audioname = ['porigon.wav', 'mikaruge.mp3', 'gaburiasu.mp3', 'aruseusu.mp3'];
+      const randomsound = Math.floor(Math.random() * audioname.length);
+      const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname[randomsound];
+
+      return client.replyMessage(event.replyToken, [
+        {
+          type: 'audio',
+          originalContentUrl: pestionaudio, // 変数を直接渡す
+          duration: 3000 // 音声の長さ（ミリ秒）
+        },
+        {
+          type: 'text',
+          text: 'なんのポケモンか当ててね☆'
+        }
+      ]);
+  case '開催コンテスト':
+    // 問題文を現在時間に近い順で取得（過ぎたものは除く）
+    const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).orderBy('day').limit(1).get();
+
+    if (!nextQuizData.empty) {
+      const nextQuiz = nextQuizData.docs[0].data();
+      quizQuestion = nextQuiz.question;
+      quizDate = nextQuiz.day;
+
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '次回コンテスト\nクイズ問題：' + quizQuestion + '\n開催日時：' + quizDate.toDate()
+      });
+    } else {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '次回コンテストはまだ設定されていません。'
+      });
     }
-  ]);
-    default:
+  default:
     break;
   }
 
