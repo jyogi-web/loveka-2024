@@ -7,6 +7,8 @@ import path from 'path'; // パス操作用のモジュールをインポート
 // Firebase Admin SDKを初期化s
 import admin from 'firebase-admin';
 import functions from 'firebase-functions';
+import sharp from 'sharp';// 画像処理用のモジュールをインポート
+
 // 環境変数からサービスアカウントキーを取得
 const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
@@ -223,73 +225,100 @@ async function handleEvent(event) {
             packageId: event.message.packageId,
             stickerId: event.message.stickerId // スタンプメッセージに対して同じスタンプで返信
           });
-          case 'image':
-            // 画像データを取得
-            console.log(`replayToken: ${event.replyToken}`);
-            console.log('画像データを取得します');
-            const stream = await client.getMessageContent(event.message.id);
-            let data = [];
-            stream.on('data', (chunk) => {
-              data.push(chunk);
-            });
-            
-            stream.on('end', async () => {
-              const buffer = Buffer.concat(data); // 受け取った画像データをバッファとしてまとめる
-              // ここで画像データを処理する（例：ファイルに保存する、クラウドストレージにアップロードするなど）
-              console.log(`画像データ: ${buffer}`);
-              imagetest.add({
-                buffer: buffer.toString('base64')
-              });
-              console.log('画像データをFirestoreに保存しました');
+    case 'image':
+      // 画像データを取得
+      console.log(`replayToken: ${event.replyToken}`);
+      console.log('画像データを取得します');
+      const stream = await client.getMessageContent(event.message.id);
+      let data = [];
+      stream.on('data', (chunk) => {
+        data.push(chunk);
+      });
+      
+      stream.on('end', async () => {
+        const buffer = Buffer.concat(data); // 受け取った画像データをバッファとしてまとめる
+        // ここで画像データを処理する（例：ファイルに保存する、クラウドストレージにアップロードするなど）
+        console.log(`画像データ: ${buffer}`);
+        imagetest.add({
+          buffer: buffer.toString('base64')
+        });
+        console.log('画像データをFirestoreに保存しました');
 
-              // Firestoreから保存済み画像を取得
-              const snapshot = await imagetest.get();
-              if (snapshot.empty) {
-                console.log('Firestoreに保存された画像がありません。');
-                return client.replyMessage(event.replyToken, {
-                  type: 'text',
-                  text: '比較対象の画像がありません。'
-                });
-              }
+        // Firestoreから保存済み画像を取得
+        const snapshot = await imagetest.get();
+        if (snapshot.empty) {
+          console.log('Firestoreに保存された画像がありません。');
+          return client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '比較対象の画像がありません。'
+          });
+        }
+    
+        let isMatch = false;
+        let bestMatch = 0;
+
+
+        for (const doc of snapshot.docs) {
+          const storedBufferData = doc.data().buffer; // Firestoreから取得した画像データ
+          if (!storedBufferData) {
+            console.log('Firestoreに保存された画像データがありません。');
+            continue;
+          }
+    
+          const storedBuffer = Buffer.from(storedBufferData, 'base64'); // Firestoreに保存された画像をBuffer形式に変換
+    
+          // sharpを使って画像を読み込む
+          const currentImage = await sharp(buffer).raw().toBuffer();
+          const storedImage = await sharp(storedBuffer).raw().toBuffer();
+    
+          // 比較するために画像のピクセルデータを抽出
+          const { width, height, channels } = await sharp(buffer).metadata();
+          const pixelDifference = compareImages(currentImage, storedImage, width, height, channels);
+    
+          const similarity = 1 - (pixelDifference / (width * height * channels)); // 一致率を計算
+    
+          // 最良一致率を更新
+          if (similarity > bestMatch) {
+            bestMatch = similarity;
+          }
+        }
+    
+    
+        // 一致率をLINEユーザーに通知
+        if (bestMatch > 0.9) { // 90%以上の一致率
+          await client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: `画像が一致しました！ 一致率: ${(bestMatch * 100).toFixed(2)}%`
+          });
+        } else {
+          await client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: `画像が一致しませんでした。 一致率: ${(bestMatch * 100).toFixed(2)}%`
+          });
+        }
           
-              let isMatch = false;
-              snapshot.forEach((doc) => {
-                const storedBufferData = doc.data().buffer; // Firestoreから取得した画像データ
-                if (!storedBufferData) {
-                  console.log('Firestoreに保存された画像データがありません。');
-                  return;
-                }
-          
-                const storedBuffer = Buffer.from(storedBufferData, 'base64'); // Firestoreに保存された画像をBuffer形式に変換
-          
-                // バイト列を比較
-                if (Buffer.compare(buffer, storedBuffer) === 0) {
-                  isMatch = true;
-                }
-              });
-          
-              // 比較結果をLINEユーザーに通知
-              if (isMatch) {
-                await client.replyMessage(event.replyToken, {
-                  type: 'text',
-                  text: '画像が一致しました！'
-                });
-              } else {
-                await client.replyMessage(event.replyToken, {
-                  type: 'text',
-                  text: '画像が一致しませんでした。'
-                });
-              }
-              
-              console.log('画像データを取得しました');
-            });
-          
-            // return client.replyMessage(event.replyToken, {
-            //   type: 'text',
-            //   text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
-            // });
-          
+          console.log('画像データを取得しました');
+        });
+    
+      // return client.replyMessage(event.replyToken, {
+      //   type: 'text',
+      //   text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
+      // });
+    
     default:
       return Promise.resolve(null); // その他のメッセージタイプは無視
   }
+}
+
+// 画像のピクセル単位での比較
+function compareImages(image1, image2, width, height, channels) {
+  let diff = 0;
+
+  for (let i = 0; i < width * height * channels; i++) {
+    if (image1[i] !== image2[i]) {
+      diff++;
+    }
+  }
+
+  return diff;
 }
