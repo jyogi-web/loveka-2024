@@ -101,15 +101,15 @@ let randomIndex = 0;
 // イベントを処理する関数
 async function handleEvent(event) {
   console.log(`eventだよ: ${JSON.stringify(event, null, 2)}`); // 受信したイベントをログに出力
-  console.log(`event.message.text: ${event.message.text}`); // 受信したメッセージをログに出力
+  // console.log(`event.message.text: ${event.message.text}`); // 受信したメッセージをログに出力
   if (event.type !== 'message') {
     return Promise.resolve(null); // メッセージイベント以外は無視
   }
 
-  // Firestoreからクイズを取得
+  // Firestoreからクイズを取得(クイズ一覧が必要なところで取得するように変更)
   const quizData = await quiz.get();
   const quizDataArray = quizData.docs.map(doc => doc.data());
-  console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
+  // console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
   
   // クイズ関係処理まとめ
   switch (event.message.text) {
@@ -121,7 +121,7 @@ async function handleEvent(event) {
     case 'クイズ作成':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇'
+        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
       });
     case 'クイズ教えて':
       // ランダムにクイズを選択
@@ -136,38 +136,54 @@ async function handleEvent(event) {
       break;
   }
 
-  // クイズ作成
+  // クイズ作成(要改善~Flexとかで値だけ入力できるようにする~)
   if (event.message.text.startsWith('問題：')) {
     // メッセージから問題文と答えを抽出
     const messageParts = event.message.text.split('\n');
     const questionPart = messageParts.find(part => part.startsWith('問題：'));
     const answerPart = messageParts.find(part => part.startsWith('答え：'));
+    const DayPart = messageParts.find(part => part.startsWith('開催日時：'));
   
-    if (!questionPart || !answerPart) {
+    if (!questionPart || !answerPart || !DayPart) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇'
+        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
       });
     }
   
     // 問題文と答えを取得
     const question = questionPart.slice(3).trim();
     const answer = answerPart.slice(3).trim();
-  
-    if (!question || !answer) {
+    const day = DayPart.slice(5).trim();
+
+    // 開催日時をTimestamp型に変換
+    const date = new Date(day);
+    console.log(`date: ${date}`);
+    if (isNaN(date.getTime())) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文または答えが空欄です。'
+        text: '開催日時の形式が正しくありません。\n【形式例】\n開催日時：20xx/01/01 00:00'
+      });
+    }
+    const timestamp = admin.firestore.Timestamp.fromDate(date);
+
+    if (!question || !answer || !day) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '問題文・答え・開催日時のいずれかが空欄です。'
       });
     }
   
     // Firestoreに登録
     try {
-      await quiz.add({ question, answer });
-  
+      await quiz.add({
+        question: question,
+        answer: answer,
+        day: timestamp
+      });  
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」`
+        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」\n開催日時：「${DayPart}」`
       });
     } catch (error) {
       console.error('Firestore登録エラー:', error);
