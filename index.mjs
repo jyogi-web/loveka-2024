@@ -101,6 +101,9 @@ let quizQuestion ="";
 let quizAnswer ="";
 let randomIndex = 0;
 
+// 画像関係の変数定義
+let isSaved = false;
+
 // イベントを処理する関数
 async function handleEvent(event) {
   console.log(`eventだよ: ${JSON.stringify(event, null, 2)}`); // 受信したイベントをログに出力
@@ -134,6 +137,12 @@ async function handleEvent(event) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
         text: quizQuestion // クイズ問題を送信
+      });
+    case '画像設定':
+      isSaved = true;
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '画像を送信してください'
       });
     default:
       break;
@@ -239,10 +248,19 @@ async function handleEvent(event) {
         const buffer = Buffer.concat(data); // 受け取った画像データをバッファとしてまとめる
         // ここで画像データを処理する（例：ファイルに保存する、クラウドストレージにアップロードするなど）
         console.log(`画像データ: ${buffer}`);
-        imagetest.add({
-          buffer: buffer.toString('base64')
-        });
-        console.log('画像データをFirestoreに保存しました');
+
+        // Firestoreに画像データを保存
+        if (isSaved) {
+          isSaved = false;
+          imagetest.add({
+            buffer: buffer.toString('base64')
+          });
+          console.log('画像データをFirestoreに保存しました');
+          return client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '画像を保存しました。'
+          });
+        }
 
         // Firestoreから保存済み画像を取得
         const snapshot = await imagetest.get();
