@@ -150,6 +150,11 @@ async function handleEvent(event) {
         text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
       });
     case 'クイズ教えて':
+      // ランキングデータ削除処理
+      const deleteData = await collectionRef.get();
+      deleteData.forEach(async (doc) => {
+        await doc.ref.delete();
+      });
       // ランダムにクイズを選択
       randomIndex = Math.floor(Math.random() * quizDataArray.length);
       quizQuestion = quizDataArray[randomIndex].question;
