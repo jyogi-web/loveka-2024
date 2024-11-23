@@ -26,6 +26,7 @@ app.set('view engine', 'ejs');
 app.engine('ejs', ejs.__express);
 app.set('views', path.join(__dirname,'views'));
 app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
+app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
 
 // エラーハンドリング
 app.use((err, req, res, next) => {
@@ -158,27 +159,43 @@ async function handleEvent(event) {
         type: 'text',
         text: '画像を送信してください'
       });
+    case '音声再生':
+      const audioname = ['porigon.wav', 'mikaruge.mp3', 'gaburiasu.mp3', 'aruseusu.mp3'];
+      const randomsound = Math.floor(Math.random() * audioname.length);
+      const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname[randomsound];
+
+      return client.replyMessage(event.replyToken, [
+        {
+          type: 'audio',
+          originalContentUrl: pestionaudio, // 変数を直接渡す
+          duration: 3000 // 音声の長さ（ミリ秒）
+        },
+        {
+          type: 'text',
+          text: 'なんのポケモンか当ててね☆'
+        }
+      ]);
   case '開催コンテスト':
     // 問題文を現在時間に近い順で取得（過ぎたものは除く）
     const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).orderBy('day').limit(1).get();
 
-  if (!nextQuizData.empty) {
-    const nextQuiz = nextQuizData.docs[0].data();
-    quizQuestion = nextQuiz.question;
-    quizDate = nextQuiz.day;
+    if (!nextQuizData.empty) {
+      const nextQuiz = nextQuizData.docs[0].data();
+      quizQuestion = nextQuiz.question;
+      quizDate = nextQuiz.day;
 
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: '次回コンテスト\nクイズ問題：' + quizQuestion + '\n開催日時：' + quizDate.toDate()
-    });
-  } else {
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: '次回コンテストはまだ設定されていません。'
-    });
-  }
-    default:
-      break;
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '次回コンテスト\nクイズ問題：' + quizQuestion + '\n開催日時：' + quizDate.toDate()
+      });
+    } else {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '次回コンテストはまだ設定されていません。'
+      });
+    }
+  default:
+    break;
   }
 
   // クイズ作成(要改善~Flexとかで値だけ入力できるようにする~)
