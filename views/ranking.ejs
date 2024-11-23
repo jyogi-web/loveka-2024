@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ランキング</title>
+    <title>ランキングページ</title>
     <link rel="stylesheet" href="/stylesheets/style.css">
 </head>
 <body>
     <header>
-        <h1>ランキングページ</h1>
+        <h1>ランキングサイト</h1>
+        <nav>
+            <ul>
+                <li><a href="/">ホーム</a></li>
+                <li><a href="/ranking">ランキングページ</a></li>
+            </ul>
+        </nav>
     </header>
     <main>
-        <section>
-            <h2>トップランキング</h2>
-            <ul>
-                <% items.forEach(item => { %>
-                    <li>
-                        <span class="rank"><%= item.rank %></span>
-                        <span class="name"><%= item.name %></span>
-                        <span class="score"><%= item.score %></span>
-                    </li>
-                <% }); %>
-            </ul>
-        </section>
+        <h2>トップランキング</h2>
+        <ul>
+            <% rankingData.forEach(item => { %>
+                <li>
+                    <strong>name:</strong> <%= item.name %><br>
+                    <strong>Timestamp:</strong> <%= item.timestamp %>
+                </li>
+            <% }); %>
+        </ul>
     </main>
     <footer>
         <p>&copy; 2024 ランキングサイト</p>
