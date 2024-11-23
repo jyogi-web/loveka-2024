@@ -1,12 +1,10 @@
-import 'dotenv/config'; // 環境変数を読み込むための設定
-import express from 'express'; // Expressフレームワークをインポート
-import { Client, middleware } from '@line/bot-sdk'; // LINE Messaging API SDKをインポート
-import ejs from 'ejs'; // EJSテンプレートエンジンをインポート
-import path from 'path'; // パス操作用のモジュールをインポート
-
-// Firebase Admin SDKを初期化s
+import 'dotenv/config';
+import express from 'express';
+import { Client, middleware } from '@line/bot-sdk';
+import ejs from 'ejs';
+import path from 'path';
 import admin from 'firebase-admin';
-import functions from 'firebase-functions';
+
 // 環境変数からサービスアカウントキーを取得
 const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
@@ -15,12 +13,11 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-const app = express(); // Expressアプリケーションを作成
-const port = 3000; // ポート番号を設定（環境変数から取得、デフォルトは3000）
-app.set('view engine', 'ejs'); // テンプレートエンジンにEJSを指定
-app.engine('ejs', ejs.__express); // テンプレートエンジンにEJSを指定
-app.set('views', './views'); // テンプレートファイルの場所を指定
-// 静的ファイルの提供
+const app = express();
+const port = 3000;
+app.set('view engine', 'ejs');
+app.engine('ejs', ejs.__express);
+app.set('views', './views');
 app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
 
 // エラーハンドリング
@@ -29,68 +26,67 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-// admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-
 const db = admin.firestore();
-const docRef = db.collection('users').doc('alovelace');
-
+const collectionRef = db.collection('responses');
 const quiz = db.collection('quiz'); // Firestoreのクイズコレクションを取得
 
 // LINE Messaging APIの設定
 const config = {
-  channelSecret: process.env.ChannelSecret, // 環境変数からチャネルシークレットを取得
-  channelAccessToken: process.env.channelAccessToken // 環境変数からチャネルアクセストークンを取得
+  channelSecret: process.env.ChannelSecret,
+  channelAccessToken: process.env.channelAccessToken
 };
 
-const client = new Client(config); // LINE Messaging APIクライアントを作成
+const client = new Client(config);
 
 // ルートエンドポイント
 app.get("/", (req, res) => {
   res.render("index");
 });
 
-//ランキング表示
-app.get("/ranking", (req, res) => {
-  const data = [
-    { rank: 1, name: "山田太郎", score: 100 },
-    { rank: 2, name: "鈴木花子", score: 90 },
-    { rank: 3, name: "佐藤次郎", score: 80 }
-  ];
-  res.render("ranking", { items:data }); // テンプレートにデータを渡してレンダリング
+// Firestoreからランキングデータを取得する関数
+async function getRankingData() {
+  const snapshot = await collectionRef.orderBy('timestamp', 'desc').get();
+  const rankingData = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    rankingData.push({
+      id: doc.id, // ドキュメントIDを含める
+      message: data.message, // タイトルフィールドを含める
+      timestamp: data.timestamp, // タイムスタンプフィールドを含める
+      name: data.userName //  ユーザーの名前を含める
+    });
+  });
+  return rankingData;
+}
+
+
+// ランキング表示
+app.get("/ranking", async (req, res) => {
+  try {
+    const rankingData = await getRankingData();
+    
+    res.render("ranking", { rankingData });
+  } catch (error) {
+    console.error('Error getting ranking data:', error);
+    res.status(500).send('Error getting ranking data');
+  }
+
+  
 });
 
-
-// メッセージ送信エンドポイント
-// app.post('/send-message', (req, res) => {
-//   const message = {
-//     type: 'text',
-//     text: 'Hello from LINE Messaging API' // 送信するメッセージの内容
-//   };
-
-//   client.pushMessage('U4cb7355db135ea19f7d2101a5315bfab', message) // 指定したユーザーIDにメッセージを送信
-//     .then(() => {
-//       res.status(200).send('Message sent'); // メッセージ送信成功時のレスポンス
-//     })
-//     .catch((err) => {
-//       console.error(err); // エラー発生時にエラーログを出力
-//       res.status(500).send('Failed to send message'); // メッセージ送信失敗時のレスポンス
-//     });
-// });
-
-// Webhookエンドポイント
-app.post("/webhook", middleware(config), (req, res) => {
-  // 受信したイベントを処理
+// Webhookエンドポイントの設定
+app.post('/webhook', middleware(config), (req, res) => {
   Promise
-    .all(req.body.events.map(handleEvent)) // 受信したイベントごとに handleEvent 関数を呼び出す
-    .then((result) => res.json(result)) // 処理結果をJSON形式で返す
+    .all(req.body.events.map(event => handleEvent(event)))
+    .then(() => res.sendStatus(200))
     .catch((err) => {
-      console.error(err); // エラー発生時にエラーログを出力
-      res.status(500).end(); // エラー発生時のレスポンス
+      console.error(err);
+      res.status(500).end();
     });
 });
 
 // サーバーを起動
-app.listen(port, () => console.log(`Server is running on port ${port}`)); // サーバー起動時にポート番号を出力
+app.listen(port, () => console.log(`Server is running on port ${port}`));
 
 
 // クイズ関係の変数定義
@@ -103,9 +99,19 @@ async function handleEvent(event) {
   console.log(`eventだよ: ${JSON.stringify(event, null, 2)}`); // 受信したイベントをログに出力
   console.log(`event.message.text: ${event.message.text}`); // 受信したメッセージをログに出力
   if (event.type !== 'message') {
-    return Promise.resolve(null); // メッセージイベント以外は無視
+    return Promise.resolve(null);
   }
 
+  // Firestoreにデータを保存
+  const profile = await client.getProfile(event.source.userId);
+  const userName = profile.displayName;
+  const timestamp = new Date().toISOString();
+  await collectionRef.add({
+    userId: event.source.userId,
+    userName: userName,
+    message: event.message.text,
+    timestamp: timestamp
+  });
   // Firestoreからクイズを取得
   const quizData = await quiz.get();
   const quizDataArray = quizData.docs.map(doc => doc.data());
@@ -177,6 +183,33 @@ async function handleEvent(event) {
       });
     }
   }
+  
+// Firestoreのデータを表示するエンドポイント
+app.get('/data', async (req, res) => {
+  try {
+    const snapshot = await collectionRef.get();
+    const itemsname = [];
+    snapshot.forEach((doc) => {
+      itemsname.push(doc.data());
+    });
+    res.render('template', { itemsname: itemsname });
+  } catch (error) {
+    console.error('Error getting documents:', error);
+    res.status(500).send('Error getting documents');
+  }
+  
+});
+app.get('/responses/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  console.log('プル', userId);
+  const userData = await getUserData(userId);
+  if (userData) {
+    res.render('ranking', { rankingData: userData }); // userData を rankingData として渡す
+    console.log(`userdate表記`, userData);
+  } else {
+    res.status(404).send('User not found');
+  }
+});
 
   // Answerの判定
   if(event.message.text === quizAnswer) {
