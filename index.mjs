@@ -29,6 +29,7 @@ app.use((err, req, res, next) => {
 const db = admin.firestore();
 const collectionRef = db.collection('responses');
 const quiz = db.collection('quiz'); // Firestoreのクイズコレクションを取得
+const imagetest = db.collection('imagetest'); // Firestoreの画像テストコレクションを取得
 
 // LINE Messaging APIの設定
 const config = {
@@ -97,7 +98,7 @@ let randomIndex = 0;
 // イベントを処理する関数
 async function handleEvent(event) {
   console.log(`eventだよ: ${JSON.stringify(event, null, 2)}`); // 受信したイベントをログに出力
-  console.log(`event.message.text: ${event.message.text}`); // 受信したメッセージをログに出力
+  // console.log(`event.message.text: ${event.message.text}`); // 受信したメッセージをログに出力
   if (event.type !== 'message') {
     return Promise.resolve(null);
   }
@@ -112,10 +113,9 @@ async function handleEvent(event) {
     message: event.message.text,
     timestamp: timestamp
   });
-  // Firestoreからクイズを取得
   const quizData = await quiz.get();
   const quizDataArray = quizData.docs.map(doc => doc.data());
-  console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
+  // console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
   
   // クイズ関係処理まとめ
   switch (event.message.text) {
@@ -127,7 +127,7 @@ async function handleEvent(event) {
     case 'クイズ作成':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇'
+        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
       });
     case 'クイズ教えて':
       // ランダムにクイズを選択
@@ -142,38 +142,54 @@ async function handleEvent(event) {
       break;
   }
 
-  // クイズ作成
-  if (event.message.text.startsWith('問題：')) {
+  // クイズ作成(要改善~Flexとかで値だけ入力できるようにする~)
+  if (event.message.type === 'text' && event.message.text.startsWith('問題：')) {
     // メッセージから問題文と答えを抽出
     const messageParts = event.message.text.split('\n');
     const questionPart = messageParts.find(part => part.startsWith('問題：'));
     const answerPart = messageParts.find(part => part.startsWith('答え：'));
+    const DayPart = messageParts.find(part => part.startsWith('開催日時：'));
   
-    if (!questionPart || !answerPart) {
+    if (!questionPart || !answerPart || !DayPart) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇'
+        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
       });
     }
   
     // 問題文と答えを取得
     const question = questionPart.slice(3).trim();
     const answer = answerPart.slice(3).trim();
-  
-    if (!question || !answer) {
+    const day = DayPart.slice(5).trim();
+
+    // 開催日時をTimestamp型に変換
+    const date = new Date(day);
+    console.log(`date: ${date}`);
+    if (isNaN(date.getTime())) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文または答えが空欄です。'
+        text: '開催日時の形式が正しくありません。\n【形式例】\n開催日時：20xx/01/01 00:00'
+      });
+    }
+    const timestamp = admin.firestore.Timestamp.fromDate(date);
+
+    if (!question || !answer || !day) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '問題文・答え・開催日時のいずれかが空欄です。'
       });
     }
   
     // Firestoreに登録
     try {
-      await quiz.add({ question, answer });
-  
+      await quiz.add({
+        question: question,
+        answer: answer,
+        day: timestamp
+      });  
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」`
+        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」\n開催日時：「${DayPart}」`
       });
     } catch (error) {
       console.error('Firestore登録エラー:', error);
@@ -212,7 +228,7 @@ app.get('/responses/:userId', async (req, res) => {
 });
 
   // Answerの判定
-  if(event.message.text === quizAnswer) {
+  if(event.message.type === 'text' && event.message.text === quizAnswer) {
     return client.replyMessage(event.replyToken, [{
       type: 'text',
       text: '正解です！'
@@ -220,7 +236,7 @@ app.get('/responses/:userId', async (req, res) => {
       type: 'text',
       text: 'ランキングページへのリンクです'
     }]);
-  }else if(event.message.text !== quizAnswer) {
+  }else if(event.message.type === 'text' && event.message.text !== quizAnswer) {
     return client.replyMessage(event.replyToken, {
       type: 'text',
       text: '不正解です！'
@@ -239,11 +255,72 @@ app.get('/responses/:userId', async (req, res) => {
             packageId: event.message.packageId,
             stickerId: event.message.stickerId // スタンプメッセージに対して同じスタンプで返信
           });
-    case 'image':
-      return client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
-          });
+          case 'image':
+            // 画像データを取得
+            console.log(`replayToken: ${event.replyToken}`);
+            console.log('画像データを取得します');
+            const stream = await client.getMessageContent(event.message.id);
+            let data = [];
+            stream.on('data', (chunk) => {
+              data.push(chunk);
+            });
+            
+            stream.on('end', async () => {
+              const buffer = Buffer.concat(data); // 受け取った画像データをバッファとしてまとめる
+              // ここで画像データを処理する（例：ファイルに保存する、クラウドストレージにアップロードするなど）
+              console.log(`画像データ: ${buffer}`);
+              imagetest.add({
+                buffer: buffer.toString('base64')
+              });
+              console.log('画像データをFirestoreに保存しました');
+
+              // Firestoreから保存済み画像を取得
+              const snapshot = await imagetest.get();
+              if (snapshot.empty) {
+                console.log('Firestoreに保存された画像がありません。');
+                return client.replyMessage(event.replyToken, {
+                  type: 'text',
+                  text: '比較対象の画像がありません。'
+                });
+              }
+          
+              let isMatch = false;
+              snapshot.forEach((doc) => {
+                const storedBufferData = doc.data().buffer; // Firestoreから取得した画像データ
+                if (!storedBufferData) {
+                  console.log('Firestoreに保存された画像データがありません。');
+                  return;
+                }
+          
+                const storedBuffer = Buffer.from(storedBufferData, 'base64'); // Firestoreに保存された画像をBuffer形式に変換
+          
+                // バイト列を比較
+                if (Buffer.compare(buffer, storedBuffer) === 0) {
+                  isMatch = true;
+                }
+              });
+          
+              // 比較結果をLINEユーザーに通知
+              if (isMatch) {
+                await client.replyMessage(event.replyToken, {
+                  type: 'text',
+                  text: '画像が一致しました！'
+                });
+              } else {
+                await client.replyMessage(event.replyToken, {
+                  type: 'text',
+                  text: '画像が一致しませんでした。'
+                });
+              }
+              
+              console.log('画像データを取得しました');
+            });
+          
+            // return client.replyMessage(event.replyToken, {
+            //   type: 'text',
+            //   text: '画像を受け取りました。' // 画像メッセージに対してテキストで返信
+            // });
+          
     default:
       return Promise.resolve(null); // その他のメッセージタイプは無視
   }
