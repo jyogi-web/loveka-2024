@@ -15,10 +15,7 @@ body{
     h1::before{
         content:"👑";
     }
-    h1::after{
-        font-size: 2em;
-        content:"👑";
-    }
+ 
 
     ul{ 
         text-decoration: underline;
