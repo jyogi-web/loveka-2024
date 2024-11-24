@@ -194,10 +194,15 @@ async function handleEvent(event) {
         type: 'text',
         text: 'コマンド一覧です\nクイズ一覧\nクイズ作成\nクイズ教えて\n画像設定\n開催コンテスト'
       });
+    // case 'クイズ一覧':
+    //   return client.replyMessage(event.replyToken, {
+    //     type: 'text',
+    //     text: 'クイズ一覧です：' + quizDataArray.map(quiz => quiz.question).join('\n\n')
+    //   });
     case 'クイズ一覧':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'クイズ一覧です：' + quizDataArray.map(quiz => quiz.question).join('\n\n')
+        text: '開催されるクイズの一覧です\nhttps://liff.line.me/2006601390-ZjBan3Mq'
       });
     case 'クイズ作成':
       return client.replyMessage(event.replyToken, {
