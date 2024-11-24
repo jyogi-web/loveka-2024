@@ -1,0 +1,53 @@
+
+body{
+    border: 4px outset;
+    border-color: orange;
+    border-width: 20px;
+    
+
+    h1{
+        font-size: 30px;
+        text-align: center;
+    }
+    h1::first-letter{
+        font-size: 2em;
+    }
+    h1::before{
+        content:"👑";
+    }
+    h1::after{
+        font-size: 2em;
+        content:"👑";
+    }
+
+    ul{ 
+        text-decoration: underline;
+        font-size: 25px;
+        width:fit-content;
+        margin:auto;
+        text-align: center;
+        list-style-type:none;
+        
+        background: #ffffbb;
+        border-radius:10px;
+        box-shadow: 0px 0px 5px silver;
+    }
+
+ 
+    
+
+    h2{
+
+        text-align: center;
+        font-size: 40px;
+    }
+
+    h2::after{
+        content:"(｀・ω・´)";
+    }
+    
+    p{
+        color:blue;
+        text-align: center;
+    }
+}
