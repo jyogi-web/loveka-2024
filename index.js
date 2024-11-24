@@ -107,6 +107,11 @@ app.get('/api/cron', async (req, res) => {
   res.status(200).json({ message: `Cron job executed successfully${nextQuizData}` });
 });
 
+app.get('/api/ranking', async (req, res) => {
+  const rankingData = await getRankingData();
+  res.json(rankingData);
+});
+
 // サーバーを起動
 app.listen(port, () => console.log(`Server is running on port ${port}`));
 
