@@ -1,0 +1,43 @@
+body{
+    border-style: solid;
+    border-width:10px;
+    border-color:#BAD3FF;
+    text-align: center;
+
+   
+    header{
+
+      
+        h1::after{
+            content:"🤔";
+        }
+    }
+
+ 
+
+    ul{
+       
+        li{
+            text-align: left;
+        }
+
+        text-decoration: underline;
+  
+    }
+  
+    
+    
+
+    h2{
+        text-align: center;
+        border-style:dashed;
+        border-width:5px;
+        border-color:#5D99FF transparent #5D99FF transparent;
+
+    }
+
+    footer{
+        text-align: center;
+        color:blue;
+    }
+}
