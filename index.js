@@ -80,8 +80,10 @@ app.get("/ranking", async (req, res) => {
     console.error('Error getting ranking data:', error);
     res.status(500).send('Error getting ranking data');
   }
+});
 
-  
+app.get("/schedule", async (req, res) => {
+  res.render("calendar");
 });
 
 // Webhookエンドポイントの設定
@@ -110,6 +112,24 @@ app.get('/api/cron', async (req, res) => {
 app.get('/api/ranking', async (req, res) => {
   const rankingData = await getRankingData();
   res.json(rankingData);
+});
+
+app.get('/api/quiz-schedule', async (req, res) => {
+  try {
+    const snapshot = await db.collection('quiz').get();
+    const quizzes = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        title: data.question, // 問題文をタイトルとして使用
+        start: new Date(data.day), // Firestoreのタイムスタンプを日付に変換
+        answer: data.answer, // 答えを追加情報として保持
+        type: data.type // 問題の種類も追加
+      };
+    });
+    res.json(quizzes);
+  } catch (error) {
+    res.status(500).send('Error fetching quiz schedule: ' + error.message);
+  }
 });
 
 // サーバーを起動
