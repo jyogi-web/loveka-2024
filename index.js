@@ -136,7 +136,7 @@ app.get('/api/quiz-schedule', async (req, res) => {
         title: data.question || 'Untitled Quiz',
         start: data.day.toDate(), // FirestoreのタイムスタンプをDateオブジェクトに変換
         answer: data.answer || 'No answer',
-        type: data.type || 'General'
+        type: data.type || 'text'
       };
     });
 
