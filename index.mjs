@@ -1,13 +1,13 @@
-import 'dotenv/config';
-import express from 'express';
-import { Client, middleware } from '@line/bot-sdk';
-import ejs from 'ejs';
-import path from 'path';
-import admin from 'firebase-admin';
-import functions from 'firebase-functions';
-import sharp from 'sharp';// 画像処理用のモジュールをインポート
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+require('dotenv').config();
+const express = require('express');
+const { Client, middleware } = require('@line/bot-sdk');
+const ejs = require('ejs');
+const path = require('path');
+const admin = require('firebase-admin');
+const functions = require('firebase-functions');
+const sharp = require('sharp');// 画像処理用のモジュールをインポート
+const { fileURLToPath } =require('url');
+const { dirname } =require('path');
 
 // 環境変数からサービスアカウントキーを取得
 const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
@@ -17,8 +17,8 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
 
 const app = express();
 const port = 3000;
