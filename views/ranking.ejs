@@ -19,12 +19,13 @@
     <main>
         <h2>トップランキング</h2>
         <ul>
-            <% rankingData.forEach(item => { %>
-                <li>
-                    <strong>name:</strong> <%= item.name %><br>
-                    <strong>Timestamp:</strong> <%= item.timestamp %>
-                </li>
+            <table border="1">
+            <% rankingData.forEach((item, index) => { %>       
+                <tr><td><%= index + 1 %><strong>位</td>
+                </strong></td><td><%= item.name %><strong></td><td>回答時刻:</strong></td>
+                <td><%= item.timestamp %></td></tr><br>
             <% }); %>
+        </table>
         </ul>
     </main>
     <footer>
