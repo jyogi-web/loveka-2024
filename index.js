@@ -140,6 +140,7 @@ app.listen(port, () => console.log(`Server is running on port ${port}`));
 let quizQuestion ="";
 let quizAnswer ="";
 let quizDate ="";
+let quiztype ="";
 let randomIndex = 0;
 
 // 画像関係の変数定義
@@ -181,13 +182,35 @@ async function handleEvent(event) {
         await doc.ref.delete();
       });
       // ランダムにクイズを選択
-      randomIndex = Math.floor(Math.random() * quizDataArray.length);
-      quizQuestion = quizDataArray[randomIndex].question;
-      quizAnswer = quizDataArray[randomIndex].answer;
-      return client.replyMessage(event.replyToken, {
-        type: 'text',
-        text: quizQuestion // クイズ問題を送信
-      });
+      randomIndex = Math.floor(Math.random() * quizDataArray.length);//quizDataArrayからランダムなクイズデータを取得
+      quizQuestion = quizDataArray[randomIndex].question;// ランダムに選ばれたクイズの質問を取得
+      quizAnswer = quizDataArray[randomIndex].answer;// ランダムに選ばれたクイズの答えを取得
+      quiztype = quizDataArray[randomIndex].type;// ランダムに選ばれたクイズのタイプを取得
+      if(quiztype == 'audio')
+      {
+        const audioname =quizDataArray[randomIndex].audioUrl;// ランダムに選ばれた音声ファイルの名前を取得
+        const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname;// 音声ファイルの完全なURLを生成
+
+        // LINE APIを使って音声メッセージとテキストメッセージを返信
+        return client.replyMessage(event.replyToken, [
+          {
+            type: 'audio',
+            originalContentUrl: pestionaudio, // 変数を直接渡す
+            duration: 3000 // 音声の長さ（ミリ秒）
+          },
+          {
+            type: 'text',
+            text: 'なんのポケモンか当ててね☆'
+          }
+        ]);
+      }
+      else{
+        return client.replyMessage(event.replyToken, {
+          type: 'text',
+          text: quizQuestion // クイズ問題を送信
+        });
+      }
+      
     case '画像設定':
       isSaved = true;
       return client.replyMessage(event.replyToken, {
