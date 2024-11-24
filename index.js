@@ -74,7 +74,7 @@ async function getRankingData() {
   return rankingData;
 }
 
-app.get("/schedule", async (req, res) => {
+app.get("/calendar", async (req, res) => {
   try {
     // Node.js 側でデータをフェッチ
     const response = await fetch('https://24j3cw1b-3000.asse.devtunnels.ms/api/quiz-schedule'); // 外部 API へのリクエスト
@@ -158,12 +158,12 @@ app.post('/webhook', middleware(config), (req, res) => {
     });
 });
 
-// 定期実行用のエンドポイント
-app.get('api/cron', async (req, res) => {
-  // 問題文を現在時間に近い順で取得（過ぎたものは除く）
-  const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).get();
-  res.status(200).json({ message: `Cron job executed successfully${nextQuizData}` });
-});
+// // 定期実行用のエンドポイント
+// app.get('api/cron', async (req, res) => {
+//   // 問題文を現在時間に近い順で取得（過ぎたものは除く）
+//   const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).get();
+//   res.status(200).json({ message: `Cron job executed successfully${nextQuizData}` });
+// });
 
 // サーバーを起動
 app.listen(port, () => console.log(`Server is running on port ${port}`));
