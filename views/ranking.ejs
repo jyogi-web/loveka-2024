@@ -18,53 +18,17 @@
     </header>
     <main>
         <h2>トップランキング</h2>
-        <ul id="rankingList">
-            <!-- JavaScriptでランキングデータを挿入 -->
+        <ul>
+            <% rankingData.forEach(item => { %>
+                <li>
+                    <strong>name:</strong> <%= item.name %><br>
+                    <strong>Timestamp:</strong> <%= item.timestamp %>
+                </li>
+            <% }); %>
         </ul>
     </main>
     <footer>
         <p>&copy; 2024 ランキングサイト</p>
     </footer>
-
-    <!-- LIFF SDKの読み込み -->
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-    <script>
-        // LIFFの初期化
-        document.addEventListener("DOMContentLoaded", function () {
-            liff.init({
-                liffId: "2006601390-A9BJvE9a" // LIFF IDを指定
-            }).then(() => {
-                fetchRankingData(); // ランキングデータを取得して表示
-            }).catch((err) => {
-                console.error("LIFF初期化エラー:", err);
-            });
-        });
-
-        // ランキングデータを取得して表示
-        function fetchRankingData() {
-            fetch('/api/ranking') // サーバーからランキングデータを取得するAPIエンドポイント
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("サーバーエラー: " + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const rankingList = document.getElementById('rankingList'); // HTML内のul要素
-                    rankingList.innerHTML = ""; // 初期化して既存データをクリア
-                    data.forEach(item => {
-                        const li = document.createElement('li'); // リスト要素を作成
-                        li.textContent = `名前: ${item.name} - タイムスタンプ: ${item.timestamp}`;
-                        rankingList.appendChild(li); // リストに追加
-                    });
-                })
-                .catch(err => {
-                    console.error("ランキングデータ取得エラー:", err);
-                    const rankingList = document.getElementById('rankingList');
-                    rankingList.innerHTML = "<li>データを取得できませんでした。</li>";
-                });
-        }
-    </script>
 </body>
 </html>
