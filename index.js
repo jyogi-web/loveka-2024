@@ -185,7 +185,7 @@ async function handleEvent(event) {
     case '音声再生':
       const audioname = ['porigon.wav', 'mikaruge.mp3', 'gaburiasu.mp3', 'aruseusu.mp3'];
       const randomsound = Math.floor(Math.random() * audioname.length);
-      const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname[randomsound];
+      const pestionaudio = 'https://loveka-deploy.vercel.app/audio/' + audioname[randomsound];
 
       return client.replyMessage(event.replyToken, [
         {
@@ -332,7 +332,7 @@ app.get('/responses/:userId', async (req, res) => {
         text: '正解です！'
       }, {
         type: 'text',
-        text: 'ランキングページへのリンクです'
+        text: 'ランキングページへのリンクです\nhttps://liff.line.me/2006601390-A9BJvE9a'
       }]);
     }
   } else if (event.message.type === 'text' && event.message.text !== quizAnswer) {
