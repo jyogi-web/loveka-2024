@@ -51,6 +51,10 @@ const client = new Client(config);
 app.get("/", (req, res) => {
   res.render("index");
 });
+//チュートリアルエンドポイント
+app.get("/tutorial", (req, res) => {
+  res.render("tutorial");
+});
 
 
 // Firestoreからランキングデータを取得する関数
@@ -193,6 +197,11 @@ async function handleEvent(event) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
         text: 'コマンド一覧です\nクイズ一覧\nクイズ作成\nクイズ教えて\n画像設定\n開催コンテスト'
+      });
+      case 'あそびかた':
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '遊び方のリンクです\nhttps://liff.line.me/2006601390-9yZjDbWP'
       });
     case 'クイズ一覧':
       return client.replyMessage(event.replyToken, {
