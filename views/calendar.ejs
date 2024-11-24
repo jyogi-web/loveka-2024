@@ -40,8 +40,13 @@
         <div class="quiz">
           <!-- <div class="quiz-title">クイズ: <%= event.title %></div> -->
           <div class="quiz-time">
-            終了時刻: <%= new Date(event.start).toLocaleString('ja-JP', { hour: '2-digit', minute: '2-digit' }) %>
-          </div>
+            終了時刻: <%= new Date(event.start).toLocaleString('ja-JP', { 
+              year: 'numeric', 
+              month: '2-digit', 
+              day: '2-digit', 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }) %>          </div>
           <div class="quiz-type">タイプ: <%= event.type %></div>
         </div>
       <% }); %>
