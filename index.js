@@ -321,7 +321,7 @@ app.get('/responses/:userId', async (req, res) => {
         text: '正解です！'
       }, {
         type: 'text',
-        text: 'ランキングページへのリンクです'
+        text: 'ランキングページへのリンクです\nhttps://liff.line.me/2006601390-A9BJvE9a'
       }]);
     }
   } else if (event.message.type === 'text' && event.message.text !== quizAnswer) {
