@@ -1,54 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quiz Schedule</title>
-  <!-- FullCalendarのCSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.5/main.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.5/daygrid.min.css"> 
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .calendar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .quiz {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      cursor: pointer;
+    }
+    .quiz:hover {
+      background-color: #e6f7ff;
+    }
+    .quiz-title {
+      font-weight: bold;
+    }
+    .quiz-time, .quiz-type {
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-  <!-- FullCalendarのJS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.5/main.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.5/daygrid.min.js"></script>
-
-  <div id="calendar"></div>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const calendarEl = document.getElementById('calendar');
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        plugins: ['dayGrid'], // dayGridプラグインを有効にする
-        initialView: 'dayGridMonth', // 初期ビューを設定
-        events: async function (fetchInfo, successCallback, failureCallback) {
-          try {
-            const response = await fetch('/api/quiz-schedule'); // APIからデータを取得
-            const events = await response.json();
-            const formattedEvents = events.map(event => ({
-              title: event.title, // カレンダーに表示するタイトル
-              start: event.start, // 開始日時
-              extendedProps: {
-                answer: event.answer, // 答えを保持
-                type: event.type // 問題の種類を保持
-              }
-            }));
-            successCallback(formattedEvents);
-          } catch (error) {
-            console.error('Error fetching events:', error);
-            failureCallback(error);
-          }
-        },
-        eventClick: function (info) {
-          // イベントクリック時の処理
-          alert(
-            `Question: ${info.event.title}\n` +
-            `Answer: ${info.event.extendedProps.answer}\n` +
-            `Type: ${info.event.extendedProps.type}`
-          );
-        }
-      });
-      calendar.render();
-    });
-  </script>
+  <h1>Quiz スケジュール</h1>
+  <div class="calendar">
+    <% if (Array.isArray(events) && events.length > 0) { %>
+      <% events.forEach(event => { %>
+        <div class="quiz">
+          <!-- <div class="quiz-title">クイズ: <%= event.title %></div> -->
+          <div class="quiz-time">
+            開催時刻: <%= new Date(event.start).toLocaleString('ja-JP', { hour: '2-digit', minute: '2-digit' }) %>
+          </div>
+          <div class="quiz-type">タイプ: <%= event.type %></div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <p>イベントがありません。</p>
+    <% } %>
+  </div>
 </body>
 </html>
