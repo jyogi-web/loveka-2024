@@ -52,6 +52,7 @@ app.get("/", (req, res) => {
   res.render("index");
 });
 
+
 // Firestoreからランキングデータを取得する関数
 async function getRankingData() {
   const snapshot = await collectionRef.orderBy('timestamp', 'asc').get();
@@ -69,6 +70,32 @@ async function getRankingData() {
   return rankingData;
 }
 
+app.get("/schedule", async (req, res) => {
+  try {
+    // Node.js 側でデータをフェッチ
+    const response = await fetch('https://24j3cw1b-3000.asse.devtunnels.ms/api/quiz-schedule'); // 外部 API へのリクエスト
+    // レスポンスをテキストとしてログに出力
+    const responseBody = await response.text();
+    // JSONパースを試みる
+    const quizData = JSON.parse(responseBody);
+    res.render('calendar', { events: quizData });
+  } catch (error) {
+    console.error('Error fetching quiz schedule:', error);
+    res.render('calendar', { events: [] }); // エラー時は空配列を渡す
+  }
+});
+
+// 定期実行用のエンドポイント
+app.get('/api/cron', async (req, res) => {
+  // 問題文を現在時間に近い順で取得（過ぎたものは除く）
+  const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).get();
+  // 時間が過ぎているものを削除する
+  const deleteQuizData = await quiz.where('day', '<', admin.firestore.Timestamp.now()).get();
+  deleteQuizData.forEach(async (doc) => {
+    await doc.ref.delete();
+  });
+  res.status(200).json({ message: `Cron job executed successfully${nextQuizData}` });
+});
 
 // ランキング表示
 app.get("/ranking", async (req, res) => {
@@ -80,8 +107,40 @@ app.get("/ranking", async (req, res) => {
     console.error('Error getting ranking data:', error);
     res.status(500).send('Error getting ranking data');
   }
+});
 
-  
+app.get('/api/ranking', async (req, res) => {
+  const rankingData = await getRankingData();
+  res.json(rankingData);
+});
+
+app.get('/api/quiz-schedule', async (req, res) => {
+  try {
+    const now = admin.firestore.Timestamp.now(); // 現在時刻をFirestoreのTimestampとして取得
+    const snapshot = await db.collection('quiz')
+      .where('day', '>=', now) // 現在時刻以降のデータを取得
+      .get();
+
+    if (snapshot.empty) {
+      console.log('No matching documents.');
+      return res.json([]); // データがない場合は空の配列を返す
+    }
+
+    const quizzes = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        title: data.question || 'Untitled Quiz',
+        start: data.day.toDate(), // FirestoreのタイムスタンプをDateオブジェクトに変換
+        answer: data.answer || 'No answer',
+        type: data.type || 'General'
+      };
+    });
+
+    res.json(quizzes); // クイズデータをJSONとして返却
+  } catch (error) {
+    console.error('Error fetching quiz schedule:', error);
+    res.status(500).send('Error fetching quiz schedule: ' + error.message);
+  }
 });
 
 // Webhookエンドポイントの設定
