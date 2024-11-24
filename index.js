@@ -198,30 +198,54 @@ async function handleEvent(event) {
         type: 'text',
         text: 'コマンド一覧です\nクイズ一覧\nクイズ作成\nクイズ教えて\n画像設定\n開催コンテスト'
       });
-      case 'あそびかた':
+    case 'あそびかた':
       return client.replyMessage(event.replyToken, {
         type: 'text',
         text: '遊び方のリンクです\nhttps://liff.line.me/2006601390-9yZjDbWP'
       });
+    // case 'クイズ一覧':
+    //   return client.replyMessage(event.replyToken, {
+    //     type: 'text',
+    //     text: 'クイズ一覧です：' + quizDataArray.map(quiz => quiz.question).join('\n\n')
+    //   });
     case 'クイズ一覧':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'クイズ一覧です：' + quizDataArray.map(quiz => quiz.question).join('\n\n')
+        text: '開催されるクイズの一覧です\nhttps://liff.line.me/2006601390-ZjBan3Mq'
       });
     case 'クイズ作成':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
+        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇\n終了日時：20xx/01/01 00:00'
       });
     case 'クイズ教えて':
       // ランダムにクイズを選択
-      randomIndex = Math.floor(Math.random() * quizDataArray.length);//quizDataArrayからランダムなクイズデータを取得
-      quizQuestion = quizDataArray[randomIndex].question;// ランダムに選ばれたクイズの質問を取得
-      quizAnswer = quizDataArray[randomIndex].answer;// ランダムに選ばれたクイズの答えを取得
-      quiztype = quizDataArray[randomIndex].type;// ランダムに選ばれたクイズのタイプを取得
+      // randomIndex = Math.floor(Math.random() * quizDataArray.length);//quizDataArrayからランダムなクイズデータを取得
+      // quizQuestion = quizDataArray[randomIndex].question;// ランダムに選ばれたクイズの質問を取得
+      // quizAnswer = quizDataArray[randomIndex].answer;// ランダムに選ばれたクイズの答えを取得
+      // quiztype = quizDataArray[randomIndex].type;// ランダムに選ばれたクイズのタイプを取得
+      const _nextQuizDataSnapshot = await quiz
+      .where('day', '>=', admin.firestore.Timestamp.now())
+      .orderBy('day')
+      .limit(1)
+      .get();
+    
+      if (_nextQuizDataSnapshot.empty) {
+        // クイズがない場合の処理
+        return client.replyMessage(event.replyToken, {
+          type: 'text',
+          text: '現在利用可能なクイズがありません。'
+        });
+      }
+      
+      const _nextQuizData = _nextQuizDataSnapshot.docs[0].data(); // 最初のクイズデータを取得
+      quizQuestion = _nextQuizData.question;// ランダムに選ばれたクイズの質問を取得
+      quizAnswer = _nextQuizData.answer;// ランダムに選ばれたクイズの答えを取得
+      quiztype = _nextQuizData.type;// ランダムに選ばれたクイズのタイプを取得
       if(quiztype == 'audio')
       {
-        const audioname =quizDataArray[randomIndex].audioUrl;// ランダムに選ばれた音声ファイルの名前を取得
+        // const audioname =quizDataArray[randomIndex].audioUrl;// ランダムに選ばれた音声ファイルの名前を取得
+        const audioname =_nextQuizData.audioUrl;// ランダムに選ばれた音声ファイルの名前を取得
         const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname;// 音声ファイルの完全なURLを生成
 
         // LINE APIを使って音声メッセージとテキストメッセージを返信
@@ -244,7 +268,6 @@ async function handleEvent(event) {
         });
       }
     case 'ランキング':
-      const rankingData = await getRankingData();
       return client.replyMessage(event.replyToken, {
         type: 'text',
         text: 'ランキングページのリンクです\nhttps://liff.line.me/2006601390-A9BJvE9a'
@@ -282,7 +305,7 @@ async function handleEvent(event) {
 
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '次回コンテスト\nクイズ問題：' + quizQuestion + '\n開催日時：' + quizDate.toDate()
+        text: '次回コンテスト\nクイズ問題：' + quizQuestion + '\n終了日時：' + quizDate.toDate()
       });
     } else {
       return client.replyMessage(event.replyToken, {
@@ -300,12 +323,12 @@ async function handleEvent(event) {
     const messageParts = event.message.text.split('\n');
     const questionPart = messageParts.find(part => part.startsWith('問題：'));
     const answerPart = messageParts.find(part => part.startsWith('答え：'));
-    const DayPart = messageParts.find(part => part.startsWith('開催日時：'));
+    const DayPart = messageParts.find(part => part.startsWith('終了日時：'));
   
     if (!questionPart || !answerPart || !DayPart) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
+        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇\n終了日時：20xx/01/01 00:00'
       });
     }
   
@@ -314,13 +337,13 @@ async function handleEvent(event) {
     const answer = answerPart.slice(3).trim();
     const day = DayPart.slice(5).trim();
 
-    // 開催日時をTimestamp型に変換
+    // 終了日時をTimestamp型に変換
     const date = new Date(day);
     console.log(`date: ${date}`);
     if (isNaN(date.getTime())) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '開催日時の形式が正しくありません。\n【形式例】\n開催日時：20xx/01/01 00:00'
+        text: '終了日時の形式が正しくありません。\n【形式例】\n終了日時：20xx/01/01 00:00'
       });
     }
     const timestamp = admin.firestore.Timestamp.fromDate(date);
@@ -328,7 +351,7 @@ async function handleEvent(event) {
     if (!question || !answer || !day) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文・答え・開催日時のいずれかが空欄です。'
+        text: '問題文・答え・終了日時のいずれかが空欄です。'
       });
     }
   
@@ -341,7 +364,7 @@ async function handleEvent(event) {
       });  
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」\n開催日時：「${DayPart}」`
+        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」\n終了日時：「${DayPart}」`
       });
     } catch (error) {
       console.error('Firestore登録エラー:', error);
