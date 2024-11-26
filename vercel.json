@@ -11,6 +11,12 @@
         "src": "/(.*)",
         "dest": "index.mjs"
       }
-    ]  
+    ],  
+    "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 5 * * *"
+    }
+  ]
   }
   

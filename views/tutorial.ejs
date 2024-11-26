@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本的なHTMLテンプレート</title>
+    <link rel="stylesheet" href="/stylesheets/tutorial.css"> <!-- 外部CSSファイルのリンク -->
+</head>
+<body style="background-color: rgba(215, 143, 201, 0.467);">
+    <header>
+        <h1>オンライン謎解きコンテストの遊び方</h1>
+        <nav>
+            <!-- ナビゲーションメニューをここに追加 -->
+        </nav>
+    </header>
+    
+    <main>
+        <section id="home">
+            <h1>ホーム</h1>
+            <p>オンライン謎解きコンテストは定刻になるとクイズが出題されます。
+            <br>そのクイズに正解すると早かった順でランキングに乗ります。
+            1位を目指して回答してください！    
+            </p>
+        </section>
+        
+        <section id="about">
+            <h2>コマンドについて</h2>
+            <p>使えるコマンドは以下になります。
+            <ul>
+                <li>「コマンド」  コマンド一覧を表示します.</li>
+                <li>「クイズ作成」  クイズを作成するページに移動します。</li>
+                <li>「クイズ教えて」  ランダムで一つクイズを作成します。何度間違っても挑戦可能です。新しく「クイズ教えて」を入力するとクイズか更新されます</li>
+                <li>「画像設定」  最初に送った画像と次に送った画像の一致度を出力します。</li>
+                <li>「開催コンテスト」  直近で行われるコンテストを表示します。</li>
+            </ul>
+        
+       
+
+
+    </p>
+            
+        </section>
+        
+        <section id="contact">
+            <h1>注意点</h1>
+            <p>ランキングに登録されるのは最初の回答のみです。2回目以降の回答はランキングに反映されません。
+            <br>＊画像設定コマンドとgeminiでの曖昧な回答の補正はlocalでは可能ですがremoteでは双方利用できません。
+            </p>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2024 チュートリアル</p>
+    </footer>
+    
+    <script src="scripts.js"></script> <!-- 外部JavaScriptファイルのリンク -->
+</body>
+</html>

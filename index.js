@@ -1,11 +1,13 @@
-import 'dotenv/config';
-import express from 'express';
-import { Client, middleware } from '@line/bot-sdk';
-import ejs from 'ejs';
-import path from 'path';
-import admin from 'firebase-admin';
-import functions from 'firebase-functions';
-import sharp from 'sharp';// 画像処理用のモジュールをインポート
+require('dotenv').config();
+const express = require('express');
+const { Client, middleware } = require('@line/bot-sdk');
+const ejs = require('ejs');
+const path = require('path');
+const admin = require('firebase-admin');
+const functions = require('firebase-functions');
+const sharp = require('sharp');// 画像処理用のモジュールをインポート
+const { fileURLToPath } =require('url');
+const { dirname } =require('path');
 
 // 環境変数からサービスアカウントキーを取得
 const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
@@ -15,12 +17,16 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
+
 const app = express();
 const port = 3000;
 app.set('view engine', 'ejs');
 app.engine('ejs', ejs.__express);
-app.set('views', './views');
+app.set('views', path.join(__dirname,'views'));
 app.use('/stylesheets', express.static(path.join(process.cwd(), 'stylesheets')));
+app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
 
 // エラーハンドリング
 app.use((err, req, res, next) => {
@@ -45,10 +51,15 @@ const client = new Client(config);
 app.get("/", (req, res) => {
   res.render("index");
 });
+//チュートリアルエンドポイント
+app.get("/tutorial", (req, res) => {
+  res.render("tutorial");
+});
+
 
 // Firestoreからランキングデータを取得する関数
 async function getRankingData() {
-  const snapshot = await collectionRef.orderBy('timestamp', 'desc').get();
+  const snapshot = await collectionRef.orderBy('timestamp', 'asc').get();
   const rankingData = [];
   snapshot.forEach(doc => {
     const data = doc.data();
@@ -56,12 +67,39 @@ async function getRankingData() {
       id: doc.id, // ドキュメントIDを含める
       message: data.message, // タイトルフィールドを含める
       timestamp: data.timestamp, // タイムスタンプフィールドを含める
-      name: data.userName //  ユーザーの名前を含める
+      name: data.userName, //  ユーザーの名前を含める
+      userid: data.userId
     });
   });
   return rankingData;
 }
 
+app.get("/calendar", async (req, res) => {
+  try {
+    // Node.js 側でデータをフェッチ
+    const response = await fetch('https://24j3cw1b-3000.asse.devtunnels.ms/api/quiz-schedule'); // 外部 API へのリクエスト
+    // レスポンスをテキストとしてログに出力
+    const responseBody = await response.text();
+    // JSONパースを試みる
+    const quizData = JSON.parse(responseBody);
+    res.render('calendar', { events: quizData });
+  } catch (error) {
+    console.error('Error fetching quiz schedule:', error);
+    res.render('calendar', { events: [] }); // エラー時は空配列を渡す
+  }
+});
+
+// 定期実行用のエンドポイント
+app.get('/api/cron', async (req, res) => {
+  // 問題文を現在時間に近い順で取得（過ぎたものは除く）
+  const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).get();
+  // 時間が過ぎているものを削除する
+  const deleteQuizData = await quiz.where('day', '<', admin.firestore.Timestamp.now()).get();
+  deleteQuizData.forEach(async (doc) => {
+    await doc.ref.delete();
+  });
+  res.status(200).json({ message: `Cron job executed successfully${nextQuizData}` });
+});
 
 // ランキング表示
 app.get("/ranking", async (req, res) => {
@@ -73,8 +111,40 @@ app.get("/ranking", async (req, res) => {
     console.error('Error getting ranking data:', error);
     res.status(500).send('Error getting ranking data');
   }
+});
 
-  
+app.get('/api/ranking', async (req, res) => {
+  const rankingData = await getRankingData();
+  res.json(rankingData);
+});
+
+app.get('/api/quiz-schedule', async (req, res) => {
+  try {
+    const now = admin.firestore.Timestamp.now(); // 現在時刻をFirestoreのTimestampとして取得
+    const snapshot = await db.collection('quiz')
+      .where('day', '>=', now) // 現在時刻以降のデータを取得
+      .get();
+
+    if (snapshot.empty) {
+      console.log('No matching documents.');
+      return res.json([]); // データがない場合は空の配列を返す
+    }
+
+    const quizzes = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        title: data.question || 'Untitled Quiz',
+        start: data.day.toDate(), // FirestoreのタイムスタンプをDateオブジェクトに変換
+        answer: data.answer || 'No answer',
+        type: data.type || 'General'
+      };
+    });
+
+    res.json(quizzes); // クイズデータをJSONとして返却
+  } catch (error) {
+    console.error('Error fetching quiz schedule:', error);
+    res.status(500).send('Error fetching quiz schedule: ' + error.message);
+  }
 });
 
 // Webhookエンドポイントの設定
@@ -88,6 +158,13 @@ app.post('/webhook', middleware(config), (req, res) => {
     });
 });
 
+// // 定期実行用のエンドポイント
+// app.get('api/cron', async (req, res) => {
+//   // 問題文を現在時間に近い順で取得（過ぎたものは除く）
+//   const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).get();
+//   res.status(200).json({ message: `Cron job executed successfully${nextQuizData}` });
+// });
+
 // サーバーを起動
 app.listen(port, () => console.log(`Server is running on port ${port}`));
 
@@ -95,6 +172,8 @@ app.listen(port, () => console.log(`Server is running on port ${port}`));
 // クイズ関係の変数定義
 let quizQuestion ="";
 let quizAnswer ="";
+let quizDate ="";
+let quiztype ="";
 let randomIndex = 0;
 
 // 画像関係の変数定義
@@ -108,41 +187,90 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  // Firestoreにデータを保存
-  const profile = await client.getProfile(event.source.userId);
-  const userName = profile.displayName;
-  const timestamp = new Date().toISOString();
-  const messageText = event.message.text || ''; // undefined のチェックを追加
-  await collectionRef.add({
-    userId: event.source.userId,
-    userName: userName,
-    message: messageText, // 修正
-    timestamp: timestamp
-  });
   const quizData = await quiz.get();
   const quizDataArray = quizData.docs.map(doc => doc.data());
   // console.log(`quizDataArray: ${JSON.stringify(quizDataArray, null, 2)}`);
   
   // クイズ関係処理まとめ
   switch (event.message.text) {
+    case 'コマンド':
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'コマンド一覧です\nクイズ一覧\nクイズ作成\nクイズ教えて\n画像設定\n開催コンテスト'
+      });
+    case 'あそびかた':
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '遊び方のリンクです\nhttps://liff.line.me/2006601390-9yZjDbWP'
+      });
+    // case 'クイズ一覧':
+    //   return client.replyMessage(event.replyToken, {
+    //     type: 'text',
+    //     text: 'クイズ一覧です：' + quizDataArray.map(quiz => quiz.question).join('\n\n')
+    //   });
     case 'クイズ一覧':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'クイズ一覧です：' + quizDataArray.map(quiz => quiz.question).join('\n\n')
+        text: '開催されるクイズの一覧です\nhttps://liff.line.me/2006601390-ZjBan3Mq'
       });
     case 'クイズ作成':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
+        text: 'クイズ作成を行います\nクイズの問題を入力してください\n【問題の書き方】\n問題：〇〇\n答え：〇〇\n終了日時：20xx/01/01 00:00'
       });
     case 'クイズ教えて':
       // ランダムにクイズを選択
-      randomIndex = Math.floor(Math.random() * quizDataArray.length);
-      quizQuestion = quizDataArray[randomIndex].question;
-      quizAnswer = quizDataArray[randomIndex].answer;
+      // randomIndex = Math.floor(Math.random() * quizDataArray.length);//quizDataArrayからランダムなクイズデータを取得
+      // quizQuestion = quizDataArray[randomIndex].question;// ランダムに選ばれたクイズの質問を取得
+      // quizAnswer = quizDataArray[randomIndex].answer;// ランダムに選ばれたクイズの答えを取得
+      // quiztype = quizDataArray[randomIndex].type;// ランダムに選ばれたクイズのタイプを取得
+      const _nextQuizDataSnapshot = await quiz
+      .where('day', '>=', admin.firestore.Timestamp.now())
+      .orderBy('day')
+      .limit(1)
+      .get();
+    
+      if (_nextQuizDataSnapshot.empty) {
+        // クイズがない場合の処理
+        return client.replyMessage(event.replyToken, {
+          type: 'text',
+          text: '現在利用可能なクイズがありません。'
+        });
+      }
+      
+      const _nextQuizData = _nextQuizDataSnapshot.docs[0].data(); // 最初のクイズデータを取得
+      quizQuestion = _nextQuizData.question;// ランダムに選ばれたクイズの質問を取得
+      quizAnswer = _nextQuizData.answer;// ランダムに選ばれたクイズの答えを取得
+      quiztype = _nextQuizData.type;// ランダムに選ばれたクイズのタイプを取得
+      if(quiztype == 'audio')
+      {
+        // const audioname =quizDataArray[randomIndex].audioUrl;// ランダムに選ばれた音声ファイルの名前を取得
+        const audioname =_nextQuizData.audioUrl;// ランダムに選ばれた音声ファイルの名前を取得
+        const pestionaudio = 'https://4q79vmt0-3000.asse.devtunnels.ms/audio/' + audioname;// 音声ファイルの完全なURLを生成
+
+        // LINE APIを使って音声メッセージとテキストメッセージを返信
+        return client.replyMessage(event.replyToken, [
+          {
+            type: 'audio',
+            originalContentUrl: pestionaudio, // 変数を直接渡す
+            duration: 3000 // 音声の長さ（ミリ秒）
+          },
+          {
+            type: 'text',
+            text: 'なんのポケモンか当ててね☆'
+          }
+        ]);
+      }
+      else{
+        return client.replyMessage(event.replyToken, {
+          type: 'text',
+          text: quizQuestion // クイズ問題を送信
+        });
+      }
+    case 'ランキング':
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: quizQuestion // クイズ問題を送信
+        text: 'ランキングページのリンクです\nhttps://liff.line.me/2006601390-A9BJvE9a'
       });
     case '画像設定':
       isSaved = true;
@@ -150,8 +278,43 @@ async function handleEvent(event) {
         type: 'text',
         text: '画像を送信してください'
       });
-    default:
-      break;
+    case '音声再生':
+      const audioname = ['porigon.wav', 'mikaruge.mp3', 'gaburiasu.mp3', 'aruseusu.mp3'];
+      const randomsound = Math.floor(Math.random() * audioname.length);
+      const pestionaudio = 'https://loveka-deploy.vercel.app/audio/' + audioname[randomsound];
+
+      return client.replyMessage(event.replyToken, [
+        {
+          type: 'audio',
+          originalContentUrl: pestionaudio, // 変数を直接渡す
+          duration: 3000 // 音声の長さ（ミリ秒）
+        },
+        {
+          type: 'text',
+          text: 'なんのポケモンか当ててね☆'
+        }
+      ]);
+  case '開催コンテスト':
+    // 問題文を現在時間に近い順で取得（過ぎたものは除く）
+    const nextQuizData = await quiz.where('day', '>=', admin.firestore.Timestamp.now()).orderBy('day').limit(1).get();
+
+    if (!nextQuizData.empty) {
+      const nextQuiz = nextQuizData.docs[0].data();
+      quizQuestion = nextQuiz.question;
+      quizDate = nextQuiz.day;
+
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '次回コンテスト\nクイズ問題：' + quizQuestion + '\n終了日時：' + quizDate.toDate()
+      });
+    } else {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '次回コンテストはまだ設定されていません。'
+      });
+    }
+  default:
+    break;
   }
 
   // クイズ作成(要改善~Flexとかで値だけ入力できるようにする~)
@@ -160,12 +323,12 @@ async function handleEvent(event) {
     const messageParts = event.message.text.split('\n');
     const questionPart = messageParts.find(part => part.startsWith('問題：'));
     const answerPart = messageParts.find(part => part.startsWith('答え：'));
-    const DayPart = messageParts.find(part => part.startsWith('開催日時：'));
+    const DayPart = messageParts.find(part => part.startsWith('終了日時：'));
   
     if (!questionPart || !answerPart || !DayPart) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇\n開催日時：20xx/01/01 00:00'
+        text: '問題文の形式が正しくありません。\n【形式例】\n問題：〇〇\n答え：〇〇\n終了日時：20xx/01/01 00:00'
       });
     }
   
@@ -174,13 +337,13 @@ async function handleEvent(event) {
     const answer = answerPart.slice(3).trim();
     const day = DayPart.slice(5).trim();
 
-    // 開催日時をTimestamp型に変換
+    // 終了日時をTimestamp型に変換
     const date = new Date(day);
     console.log(`date: ${date}`);
     if (isNaN(date.getTime())) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '開催日時の形式が正しくありません。\n【形式例】\n開催日時：20xx/01/01 00:00'
+        text: '終了日時の形式が正しくありません。\n【形式例】\n終了日時：20xx/01/01 00:00'
       });
     }
     const timestamp = admin.firestore.Timestamp.fromDate(date);
@@ -188,7 +351,7 @@ async function handleEvent(event) {
     if (!question || !answer || !day) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: '問題文・答え・開催日時のいずれかが空欄です。'
+        text: '問題文・答え・終了日時のいずれかが空欄です。'
       });
     }
   
@@ -201,7 +364,7 @@ async function handleEvent(event) {
       });  
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」\n開催日時：「${DayPart}」`
+        text: `クイズを登録しました！\n問題：「${question}」\n答え：「${answer}」\n終了日時：「${DayPart}」`
       });
     } catch (error) {
       console.error('Firestore登録エラー:', error);
@@ -240,15 +403,35 @@ app.get('/responses/:userId', async (req, res) => {
 });
 
   // Answerの判定
-  if(event.message.type === 'text' && event.message.text === quizAnswer) {
-    return client.replyMessage(event.replyToken, [{
-      type: 'text',
-      text: '正解です！'
-    }, {
-      type: 'text',
-      text: 'ランキングページへのリンクです'
-    }]);
-  }else if(event.message.type === 'text' && event.message.text !== quizAnswer) {
+  if (event.message.type === 'text' && event.message.text === quizAnswer) {
+    const RankingData = await getRankingData();
+    console.log("確認",RankingData);
+    let answered = false;
+    RankingData.forEach((ranking)=> {
+      if (ranking.userid === event.source.userId) {
+        answered = true;
+        
+      }
+      console.log('集会終了',event.source.userId);
+      console.log('回答済み',ranking.id);
+    });
+    
+    if (answered) {
+      return client.replyMessage(event.replyToken, [{
+        type: 'text',
+        text: '回答済みです！'
+      }]);
+    } else {
+      await Firestore_save(event);
+      return client.replyMessage(event.replyToken, [{
+        type: 'text',
+        text: '正解です！'
+      }, {
+        type: 'text',
+        text: 'ランキングページへのリンクです\nhttps://liff.line.me/2006601390-A9BJvE9a'
+      }]);
+    }
+  } else if (event.message.type === 'text' && event.message.text !== quizAnswer) {
     return client.replyMessage(event.replyToken, {
       type: 'text',
       text: '不正解です！'
@@ -372,4 +555,18 @@ function compareImages(image1, image2, width, height, channels) {
   }
 
   return diff;
+}
+// Firestoreにデータを保存
+async function Firestore_save(event)
+{
+  const profile = await client.getProfile(event.source.userId);
+  const userName = profile.displayName;
+  const timestamp = new Date().toISOString();
+  const messageText = event.message.text || ''; // undefined のチェックを追加
+  await collectionRef.add({
+    userId: event.source.userId,
+    userName: userName,
+    message: messageText, // 修正
+    timestamp: timestamp
+  });
 }

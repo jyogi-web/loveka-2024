@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Schedule</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .calendar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .quiz {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      cursor: pointer;
+    }
+    .quiz:hover {
+      background-color: #e6f7ff;
+    }
+    .quiz-title {
+      font-weight: bold;
+    }
+    .quiz-time, .quiz-type {
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Quiz スケジュール</h1>
+  <div class="calendar">
+    <% if (Array.isArray(events) && events.length > 0) { %>
+      <% events.forEach(event => { %>
+        <div class="quiz">
+          <!-- <div class="quiz-title">クイズ: <%= event.title %></div> -->
+          <div class="quiz-time">
+            終了時刻: <%= new Date(event.start).toLocaleString('ja-JP', { 
+              year: 'numeric', 
+              month: '2-digit', 
+              day: '2-digit', 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }) %>          </div>
+          <div class="quiz-type">タイプ: <%= event.type %></div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <p>イベントがありません。</p>
+    <% } %>
+  </div>
+</body>
+</html>
