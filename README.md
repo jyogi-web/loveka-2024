@@ -35,3 +35,6 @@ vercel
 https://vercel.com/kou050223s-projects/loveka-deploy
 
 今からやるので後で追加
+
+deploy用のリポジトリがありますよ
+git@github.com:KOU050223/loveka-deploy.git
