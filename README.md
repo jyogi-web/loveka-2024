@@ -1,16 +1,41 @@
-# Lovekaカップメインのリポジトリ
+# ターゲット層
 
-全体に関わりそうなことはWikiにまとめる
+クイズが好きなすべての人
 
-[環境構築](https://github.com/jyogi-web/loveka-2024/wiki)
 
-[GitHubの運用](https://github.com/jyogi-web/loveka-2024/wiki/Git%E3%81%AE%E9%81%8B%E7%94%A8%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+# 内容
 
-## Node.js
+LIFFという機能を使用し、LINE上でのWebページの表示を実現しました。
 
-### コマンド集
+また、リッチメニューの画像をPhotoshopで作成し、LINE上で表示しています。このアプリで遊ぶ人の目が疲れないよう、優しい色を意識してパステルカラーのデザインにしました。
 
-ここによく使いそうなコマンドは追加する
+そして、遊び方やランキングのWebページを作成しました。
+
+
+# 特徴
+
+全ての操作をLINEで済ませることが可能
+
+LINEを使って手軽に参加することが可能
+
+
+# 遊び方
+LINEbotのメニュー欄から、LINEbotにクイズを出題してもらったり、遊び方の参照やランキングページの参照、問題の作成をすることなどができます。
+
+
+# 使用技術
+
+https://github.com/jyogi-web/loveka-2024/wiki
+
+- LINE Messaging API
+ - LINE Front-end Framework(LIFF)
+ - リッチメニュー
+ - Webhook
+- Node.js
+ - Express
+- Firestore
+- Vercel
+  
 
 ### 参考記事
 
@@ -33,8 +58,6 @@ https://console.firebase.google.com/u/0/?hl=ja
 vercel
 
 https://vercel.com/kou050223s-projects/loveka-deploy
-
-今からやるので後で追加
 
 deploy用のリポジトリがありますよ
 git@github.com:KOU050223/loveka-deploy.git
